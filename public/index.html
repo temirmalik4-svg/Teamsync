@@ -1,0 +1,2721 @@
+<!DOCTYPE html>
+<html lang="cs" class="h-full bg-[#F6F7F5] text-stone-900">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TeamSync – Týmová kabina</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .safe-top {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .pitch-grass {
+      background: repeating-linear-gradient(
+        0deg,
+        #2d6a42 0px,
+        #2d6a42 38px,
+        #275d39 38px,
+        #275d39 76px
+      );
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-fade-up {
+      animation: fadeInUp 0.16s ease-out;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#F6F7F5] text-stone-900 antialiased">
+  <div id="root" class="h-full w-full flex flex-col lg:flex-row overflow-hidden"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // ========================================================
+    // VEKTOROVÉ IKONY
+    // ========================================================
+    const ICON_PATHS = {
+      calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+      wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+      users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+      check: '<polyline points="20 6 9 17 4 12"/>',
+      x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+      chevronDown: '<polyline points="6 9 12 15 18 9"/>',
+      chevronRight: '<polyline points="9 18 15 12 9 6"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      mapPin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+      settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+      phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+      messageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+      edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+      wand: '<path d="m15 4-1 1 4 4 1-1a2.83 2.83 0 1 0-4-4z"/><path d="m13 6-8.5 8.5a2.12 2.12 0 1 0 3 3L16 9"/>',
+      eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+      eyeOff: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
+      userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+      rotateCcw: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+      copy: '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+      alertTriangle: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    };
+
+    function Icon({ name, className = "w-4 h-4" }) {
+      const path = ICON_PATHS[name] || '';
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+          dangerouslySetInnerHTML={{ __html: path }}
+        />
+      );
+    }
+
+    function getInitials(name = '') {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return name.slice(0, 2).toUpperCase();
+    }
+
+    const FORMATIONS = {
+      '4-3-3': [
+        { id: 'gk', name: 'GK', x: 50, y: 88, isGk: true },
+        { id: 'lb', name: 'LB', x: 16, y: 69 },
+        { id: 'cb1', name: 'CB', x: 38, y: 71 },
+        { id: 'cb2', name: 'CB', x: 62, y: 71 },
+        { id: 'rb', name: 'RB', x: 84, y: 69 },
+        { id: 'dm', name: 'DM', x: 50, y: 52 },
+        { id: 'cm1', name: 'CM', x: 30, y: 40 },
+        { id: 'cm2', name: 'CM', x: 70, y: 40 },
+        { id: 'lw', name: 'LW', x: 18, y: 20 },
+        { id: 'st', name: 'ST', x: 50, y: 15 },
+        { id: 'rw', name: 'RW', x: 82, y: 20 },
+      ],
+      '4-4-2': [
+        { id: 'gk', name: 'GK', x: 50, y: 88, isGk: true },
+        { id: 'lb', name: 'LB', x: 16, y: 69 },
+        { id: 'cb1', name: 'CB', x: 38, y: 71 },
+        { id: 'cb2', name: 'CB', x: 62, y: 71 },
+        { id: 'rb', name: 'RB', x: 84, y: 69 },
+        { id: 'lm', name: 'LM', x: 16, y: 44 },
+        { id: 'cm1', name: 'CM', x: 38, y: 46 },
+        { id: 'cm2', name: 'CM', x: 62, y: 46 },
+        { id: 'rm', name: 'RM', x: 84, y: 44 },
+        { id: 'st1', name: 'ST', x: 38, y: 18 },
+        { id: 'st2', name: 'ST', x: 62, y: 18 },
+      ],
+      '3-5-2': [
+        { id: 'gk', name: 'GK', x: 50, y: 88, isGk: true },
+        { id: 'cb1', name: 'CB', x: 25, y: 70 },
+        { id: 'cb2', name: 'CB', x: 50, y: 72 },
+        { id: 'cb3', name: 'CB', x: 75, y: 70 },
+        { id: 'lwb', name: 'LWB', x: 14, y: 46 },
+        { id: 'cm1', name: 'CM', x: 36, y: 48 },
+        { id: 'cam', name: 'CAM', x: 50, y: 37 },
+        { id: 'cm2', name: 'CM', x: 64, y: 48 },
+        { id: 'rwb', name: 'RWB', x: 86, y: 46 },
+        { id: 'st1', name: 'ST', x: 38, y: 18 },
+        { id: 'st2', name: 'ST', x: 62, y: 18 },
+      ],
+    };
+
+    const SEED_TEAMS = [
+      { id: 'team-1', name: 'FC Sokol Lhota', shortCode: 'LHO-26', color: '#15803d', league: 'I. B třída' },
+      { id: 'team-2', name: 'SK Slavoj B-tým', shortCode: 'SLA-B', color: '#be123c', league: 'Městský přebor' },
+    ];
+
+    const SEED_USERS = [
+      { id: 'u-coach', teamId: 'team-1', name: 'Karel Vlach', role: 'COACH', jersey: null, pos: null, phone: '777 111 222' },
+      { id: 'u-capt', teamId: 'team-1', name: 'Tomáš Řepka', nickname: 'Řepa', role: 'CAPTAIN', jersey: 2, pos: 'DEF', phone: '777 333 444' },
+      { id: 'u-1', teamId: 'team-1', name: 'Petr Čáp', nickname: 'Čapíno', role: 'PLAYER', jersey: 1, pos: 'GK', phone: '777 001 001' },
+      { id: 'u-2', teamId: 'team-1', name: 'Marek Jánský', nickname: 'Jankul', role: 'PLAYER', jersey: 6, pos: 'DEF', phone: '777 002 002' },
+      { id: 'u-3', teamId: 'team-1', name: 'Radek Kovář', nickname: 'Kovy', role: 'PLAYER', jersey: 4, pos: 'DEF', phone: '777 003 003' },
+      { id: 'u-4', teamId: 'team-1', name: 'Zdeněk Grygar', nickname: 'Zdéňa', role: 'PLAYER', jersey: 3, pos: 'DEF', phone: '777 004 004' },
+      { id: 'u-5', teamId: 'team-1', name: 'Pavel Novák', nickname: 'Méďa', role: 'PLAYER', jersey: 11, pos: 'MID', phone: '777 005 005' },
+      { id: 'u-6', teamId: 'team-1', name: 'Vláďa Šmíd', nickname: 'Šmíca', role: 'PLAYER', jersey: 7, pos: 'MID', phone: '777 006 006' },
+      { id: 'u-7', teamId: 'team-1', name: 'Tomáš Rosa', nickname: 'Rosa', role: 'PLAYER', jersey: 10, pos: 'MID', phone: '777 007 007' },
+      { id: 'u-8', teamId: 'team-1', name: 'Karel Pospíšil', nickname: 'Kája', role: 'PLAYER', jersey: 8, pos: 'MID', phone: '777 008 008' },
+      { id: 'u-9', teamId: 'team-1', name: 'Milan Bárta', nickname: 'Bary', role: 'PLAYER', jersey: 9, pos: 'FWD', phone: '777 009 009' },
+      { id: 'u-10', teamId: 'team-1', name: 'Jan Kolomazník', nickname: 'Kolomaz', role: 'PLAYER', jersey: 19, pos: 'FWD', phone: '777 010 010' },
+      { id: 'u-11', teamId: 'team-1', name: 'David Láfka', nickname: 'Lafy', role: 'PLAYER', jersey: 21, pos: 'FWD', phone: '777 011 011' },
+      { id: 'u-12', teamId: 'team-1', name: 'Tomáš Hubáček', nickname: 'Hubič', role: 'PLAYER', jersey: 17, pos: 'MID', phone: '777 012 012' },
+      { id: 'u2-coach', teamId: 'team-2', name: 'Pavel Horváth', role: 'COACH', jersey: null, pos: null, phone: '777 555 111' },
+      { id: 'u2-capt', teamId: 'team-2', name: 'Lukáš Vácha', nickname: 'Váša', role: 'CAPTAIN', jersey: 6, pos: 'MID', phone: '777 555 222' },
+      { id: 'u2-1', teamId: 'team-2', name: 'Aleš Hruška', nickname: 'Hruša', role: 'PLAYER', jersey: 1, pos: 'GK', phone: '777 555 333' },
+      { id: 'u2-2', teamId: 'team-2', name: 'Jakub Brabec', nickname: 'Brába', role: 'PLAYER', jersey: 5, pos: 'DEF', phone: '777 555 444' },
+      { id: 'u2-3', teamId: 'team-2', name: 'Matěj Pulkrab', nickname: 'Pulky', role: 'PLAYER', jersey: 9, pos: 'FWD', phone: '777 555 555' },
+    ];
+
+    const SEED_EVENTS = [
+      {
+        id: 'ev-match-1', teamId: 'team-1', type: 'MATCH',
+        title: 'FC Sokol Lhota – FK Slavoj Vršovice', opponent: 'FK Slavoj Vršovice',
+        location: 'Hlavní hřiště Lhota', meetTime: '13:30', startTime: '15:00',
+        rawDate: '2026-11-28', notes: 'Černé štulpny a chrániče s sebou.', isFinished: false,
+      },
+      {
+        id: 'ev-match-2', teamId: 'team-1', type: 'MATCH',
+        title: 'FC Sokol Lhota – TJ Sokol Říčany', opponent: 'TJ Sokol Říčany',
+        location: 'Hřiště Říčany', meetTime: '13:00', startTime: '14:30',
+        rawDate: '2026-12-05', notes: 'Odjezd auty od kabin ve 12:30.', isFinished: false,
+      },
+      {
+        id: 'ev-train-1', teamId: 'team-1', type: 'TRAINING',
+        title: 'Předzápasový trénink a standardky',
+        location: 'Umělka Lhota', meetTime: '17:45', startTime: '18:00',
+        rawDate: '2026-11-26', notes: 'Chrániče povinně.', isFinished: false,
+      },
+      { id: 'ev-p1', teamId: 'team-1', type: 'TRAINING', title: 'Kondiční příprava', rawDate: '2026-11-05', startTime: '18:00', meetTime: '17:45', location: 'Umělka Lhota', isFinished: true },
+      { id: 'ev-p2', teamId: 'team-1', type: 'TRAINING', title: 'Herní kombinace', rawDate: '2026-11-12', startTime: '18:00', meetTime: '17:45', location: 'Umělka Lhota', isFinished: true },
+      { id: 'ev-p3', teamId: 'team-1', type: 'TRAINING', title: 'Střelba a přihrávky', rawDate: '2026-11-19', startTime: '18:00', meetTime: '17:45', location: 'Umělka Lhota', isFinished: true },
+      { id: 'ev-p4', teamId: 'team-1', type: 'MATCH', title: 'SK Rapid – FC Sokol Lhota (1:3)', opponent: 'SK Rapid', rawDate: '2026-11-21', startTime: '14:30', meetTime: '13:15', location: 'Hřiště Rapid', isFinished: true },
+      {
+        id: 'ev2-m1', teamId: 'team-2', type: 'MATCH',
+        title: 'SK Slavoj B-tým – TJ Dolní Počernice', opponent: 'TJ Dolní Počernice',
+        location: 'Hřiště Slavoj', meetTime: '09:30', startTime: '10:30',
+        rawDate: '2026-11-29', notes: 'Nedělní dopolední zápas.', isFinished: false,
+      },
+    ];
+
+    const SEED_ATTENDANCES = {
+      'ev-p1_u-capt': { status: 'PRESENT' }, 'ev-p2_u-capt': { status: 'PRESENT' }, 'ev-p3_u-capt': { status: 'PRESENT' }, 'ev-p4_u-capt': { status: 'PRESENT' }, 'ev-match-1_u-capt': { status: 'PRESENT' },
+      'ev-p1_u-1': { status: 'PRESENT' }, 'ev-p2_u-1': { status: 'PRESENT' }, 'ev-p3_u-1': { status: 'PRESENT' }, 'ev-p4_u-1': { status: 'PRESENT' }, 'ev-match-1_u-1': { status: 'PRESENT' },
+      'ev-p1_u-9': { status: 'PRESENT' }, 'ev-p2_u-9': { status: 'EXCUSED', reason: 'Odpolední směna v práci' }, 'ev-p3_u-9': { status: 'PRESENT' }, 'ev-p4_u-9': { status: 'PRESENT' }, 'ev-match-1_u-9': { status: 'PRESENT' },
+      'ev-p1_u-10': { status: 'PRESENT' }, 'ev-p2_u-10': { status: 'EXCUSED', reason: 'Namožený kotník' }, 'ev-p3_u-10': { status: 'UNEXCUSED' }, 'ev-p4_u-10': { status: 'PRESENT' }, 'ev-match-1_u-10': { status: 'EXCUSED', reason: 'Rodinná oslava' },
+      'ev-match-1_u-2': { status: 'PRESENT' }, 'ev-match-1_u-3': { status: 'PRESENT' }, 'ev-match-1_u-4': { status: 'PRESENT' }, 'ev-match-1_u-5': { status: 'PRESENT' }, 'ev-match-1_u-6': { status: 'PRESENT' }, 'ev-match-1_u-7': { status: 'PRESENT' }, 'ev-match-1_u-8': { status: 'PRESENT' }, 'ev-match-1_u-11': { status: 'PRESENT' }, 'ev-match-1_u-12': { status: 'PRESENT' },
+      'ev-train-1_u-capt': { status: 'PRESENT' }, 'ev-train-1_u-1': { status: 'PRESENT' }, 'ev-train-1_u-10': { status: 'EXCUSED', reason: 'Práce do 19:00' },
+    };
+
+    const SEED_LINEUPS = {
+      'ev-match-1': {
+        formation: '4-3-3',
+        assignments: {
+          gk: 'u-1', lb: 'u-2', cb1: 'u-capt', cb2: 'u-3', rb: 'u-4',
+          dm: 'u-12', cm1: 'u-5', cm2: 'u-7', lw: 'u-6', st: 'u-9', rw: 'u-8'
+        },
+        bench: ['u-11'],
+        isPublished: true,
+        tacticalNotes: 'Napadat rozehrávku od prvních minut, standardní situace zahrává Tomáš Rosa.'
+      }
+    };
+
+    const SEED_FINE_RULES = [
+      { id: 'r-1', teamId: 'team-1', title: 'Pozdní příchod na sraz (do 15 min)', amount: 50 },
+      { id: 'r-2', teamId: 'team-1', title: 'Pozdní příchod na sraz (nad 15 min)', amount: 100 },
+      { id: 'r-3', teamId: 'team-1', title: 'Neomluvená absence na tréninku', amount: 150 },
+      { id: 'r-4', teamId: 'team-1', title: 'Neomluvená absence na zápase', amount: 300 },
+      { id: 'r-5', teamId: 'team-1', title: 'Špinavé kopačky', amount: 50 },
+      { id: 'r-6', teamId: 'team-1', title: 'Zvonící telefon v šatně', amount: 100 },
+      { id: 'r-7', teamId: 'team-1', title: 'Zapomenutý dres nebo chrániče', amount: 100 },
+      { id: 'r-8', teamId: 'team-1', title: 'Žlutá karta za řeči', amount: 200 },
+      { id: 'r-9', teamId: 'team-1', title: 'Červená karta za nesportovní chování', amount: 500 },
+      { id: 'r-10', teamId: 'team-1', title: 'První gól v sezoně', amount: 200 },
+      { id: 'r-11', teamId: 'team-1', title: 'Narozeniny / svátek', amount: 250 },
+      { id: 'r2-1', teamId: 'team-2', title: 'Pozdní příchod na sraz', amount: 50 },
+      { id: 'r2-2', teamId: 'team-2', title: 'Neomluvená absence', amount: 200 },
+    ];
+
+    const SEED_FINES = [
+      { id: 'f-1', teamId: 'team-1', userId: 'u-capt', userName: 'Tomáš Řepka', title: 'Žlutá karta za řeči', amount: 200, isPaid: false, date: '21. 11.', note: 'Diskuze s pomezním' },
+      { id: 'f-2', teamId: 'team-1', userId: 'u-9', userName: 'Milan Bárta', title: 'Pozdní příchod na sraz (do 15 min)', amount: 50, isPaid: false, date: '19. 11.', note: 'Zdržení v dopravě' },
+      { id: 'f-3', teamId: 'team-1', userId: 'u-10', userName: 'Jan Kolomazník', title: 'Neomluvená absence na tréninku', amount: 150, isPaid: false, date: '19. 11.' },
+      { id: 'f-4', teamId: 'team-1', userId: 'u-6', userName: 'Vláďa Šmíd', title: 'Špinavé kopačky', amount: 50, isPaid: false, date: '12. 11.' },
+      { id: 'f-p1', teamId: 'team-1', userId: 'u-7', userName: 'Tomáš Rosa', title: 'První gól v sezoně', amount: 200, isPaid: true, date: '5. 11.' },
+      { id: 'f-p2', teamId: 'team-1', userId: 'u-1', userName: 'Petr Čáp', title: 'Zvonící telefon v šatně', amount: 100, isPaid: true, date: '5. 11.' },
+      { id: 'f-p3', teamId: 'team-1', userId: 'u-5', userName: 'Pavel Novák', title: 'Narozeniny / svátek', amount: 250, isPaid: true, date: '12. 11.' },
+      { id: 'f2-1', teamId: 'team-2', userId: 'u2-3', userName: 'Matěj Pulkrab', title: 'Pozdní příchod na sraz', amount: 50, isPaid: false, date: '20. 11.' },
+    ];
+
+    function formatCzechDate(isoDate) {
+      if (!isoDate) return '';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const dt = new Date(y, m, d);
+      const days = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+      const months = ['ledna', 'února', 'března', 'dubna', 'května', 'června', 'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+      return `${days[dt.getDay()]} ${d}. ${months[m]}`;
+    }
+
+    function getMonthLabel(ym) {
+      const [y, m] = ym.split('-');
+      const months = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+      return `${months[parseInt(m, 10) - 1]} ${y}`;
+    }
+
+    // ========================================================
+    // APLIKACE TEAMSYNC
+    // ========================================================
+    function App() {
+      const loadState = (key, fallback) => {
+        try {
+          const saved = localStorage.getItem(`teamsync_v7_${key}`);
+          return saved ? JSON.parse(saved) : fallback;
+        } catch {
+          return fallback;
+        }
+      };
+
+      const [teams, setTeams] = useState(() => loadState('teams', SEED_TEAMS));
+      const [currentTeamId, setCurrentTeamId] = useState(() => loadState('currentTeamId', 'team-1'));
+      const [users, setUsers] = useState(() => loadState('users', SEED_USERS));
+      const [currentUserId, setCurrentUserId] = useState(() => loadState('currentUserId', 'u-coach'));
+      const [events, setEvents] = useState(() => loadState('events', SEED_EVENTS));
+      const [attendances, setAttendances] = useState(() => loadState('attendances', SEED_ATTENDANCES));
+      const [lineups, setLineups] = useState(() => loadState('lineups', SEED_LINEUPS));
+      const [fineRules, setFineRules] = useState(() => loadState('fineRules', SEED_FINE_RULES));
+      const [fines, setFines] = useState(() => loadState('fines', SEED_FINES));
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('teamsync_v7_teams', JSON.stringify(teams));
+          localStorage.setItem('teamsync_v7_currentTeamId', JSON.stringify(currentTeamId));
+          localStorage.setItem('teamsync_v7_users', JSON.stringify(users));
+          localStorage.setItem('teamsync_v7_currentUserId', JSON.stringify(currentUserId));
+          localStorage.setItem('teamsync_v7_events', JSON.stringify(events));
+          localStorage.setItem('teamsync_v7_attendances', JSON.stringify(attendances));
+          localStorage.setItem('teamsync_v7_lineups', JSON.stringify(lineups));
+          localStorage.setItem('teamsync_v7_fineRules', JSON.stringify(fineRules));
+          localStorage.setItem('teamsync_v7_fines', JSON.stringify(fines));
+        } catch {}
+      }, [teams, currentTeamId, users, currentUserId, events, attendances, lineups, fineRules, fines]);
+
+      const [activeTab, setActiveTab] = useState('calendar');
+      const [calendarView, setCalendarView] = useState('UPCOMING');
+      const [finesFilter, setFinesFilter] = useState('ALL');
+      const [statsMonth, setStatsMonth] = useState('2026-11');
+      const [teamMenuOpen, setTeamMenuOpen] = useState(false);
+      const [toastMsg, setToastMsg] = useState(null);
+
+      // Modály
+      const [confirmDialog, setConfirmDialog] = useState(null); // { title, message, confirmLabel, onConfirm }
+      const [newTeamModalOpen, setNewTeamModalOpen] = useState(false);
+      const [eventModalState, setEventModalState] = useState(null); // null | { mode: 'CREATE' | 'EDIT', eventId?: string }
+      const [eventDetailId, setEventDetailId] = useState(null);
+      const [excuseModalEventId, setExcuseModalEventId] = useState(null);
+      const [excuseReason, setExcuseReason] = useState('');
+      const [cancelEventModalId, setCancelEventModalId] = useState(null);
+      const [cancelEventReason, setCancelEventReason] = useState('');
+      const [slotPickerSlotId, setSlotPickerSlotId] = useState(null);
+      const [newFineModalOpen, setNewFineModalOpen] = useState(false);
+      const [manageRulesModalOpen, setManageRulesModalOpen] = useState(false);
+      const [memberModalState, setMemberModalState] = useState(null); // null | { mode: 'CREATE' | 'EDIT', userId?: string }
+
+      const [newTeamForm, setNewTeamForm] = useState({ name: '', league: 'Okresní přebor', color: '#15803d' });
+      const [eventForm, setEventForm] = useState({
+        type: 'TRAINING', title: '', opponent: '', location: 'Hlavní hřiště',
+        rawDate: '2026-11-30', meetTime: '17:45', startTime: '18:00', notes: ''
+      });
+      const [fineForm, setFineForm] = useState({ userId: '', ruleId: 'CUSTOM', title: '', amount: 50, note: '' });
+      const [newRuleForm, setNewRuleForm] = useState({ title: '', amount: 100 });
+      const [memberForm, setMemberForm] = useState({ name: '', nickname: '', jersey: '', pos: 'MID', role: 'PLAYER', phone: '' });
+
+      const showToast = (msg) => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(null), 2600);
+      };
+
+      const executeResetDemo = () => {
+        localStorage.clear();
+        setTeams(SEED_TEAMS);
+        setCurrentTeamId('team-1');
+        setUsers(SEED_USERS);
+        setCurrentUserId('u-coach');
+        setEvents(SEED_EVENTS);
+        setAttendances(SEED_ATTENDANCES);
+        setLineups(SEED_LINEUPS);
+        setFineRules(SEED_FINE_RULES);
+        setFines(SEED_FINES);
+        setStatsMonth('2026-11');
+        setTeamMenuOpen(false);
+        setConfirmDialog(null);
+        showToast('Výchozí data byla obnovena');
+      };
+
+      const currentTeam = teams.find(t => t.id === currentTeamId) || teams[0];
+      const teamUsers = useMemo(() => users.filter(u => u.teamId === currentTeamId), [users, currentTeamId]);
+      const teamPlayers = useMemo(() => teamUsers.filter(u => u.role !== 'COACH'), [teamUsers]);
+
+      const currentUser = useMemo(() => {
+        const found = teamUsers.find(u => u.id === currentUserId);
+        return found || teamUsers[0] || users[0];
+      }, [teamUsers, currentUserId, users]);
+
+      const isCoach = currentUser?.role === 'COACH';
+      const isCaptain = currentUser?.role === 'CAPTAIN';
+
+      const switchRoleInCurrentTeam = (targetRole) => {
+        const candidate = teamUsers.find(u => u.role === targetRole);
+        if (candidate) {
+          setCurrentUserId(candidate.id);
+        } else {
+          showToast(`V týmu zatím není žádný ${targetRole === 'COACH' ? 'Trenér' : targetRole === 'CAPTAIN' ? 'Kapitán' : 'Hráč'}`);
+        }
+      };
+
+      const teamEvents = useMemo(() => {
+        return events
+          .filter(e => e.teamId === currentTeamId)
+          .sort((a, b) => (a.rawDate || '').localeCompare(b.rawDate || ''));
+      }, [events, currentTeamId]);
+
+      const upcomingEvents = useMemo(() => teamEvents.filter(e => !e.isFinished), [teamEvents]);
+      const pastEvents = useMemo(() => teamEvents.filter(e => e.isFinished).reverse(), [teamEvents]);
+      const teamMatches = useMemo(() => teamEvents.filter(e => e.type === 'MATCH' && !e.isFinished && !e.isCancelled), [teamEvents]);
+
+      const [selectedMatchId, setSelectedMatchId] = useState('ev-match-1');
+      const activeMatch = useMemo(() => {
+        return teamMatches.find(m => m.id === selectedMatchId) || teamMatches[0] || null;
+      }, [teamMatches, selectedMatchId]);
+
+      const activeLineup = useMemo(() => {
+        if (!activeMatch) return null;
+        return lineups[activeMatch.id] || {
+          formation: '4-3-3',
+          assignments: {},
+          bench: [],
+          isPublished: false,
+          tacticalNotes: ''
+        };
+      }, [activeMatch, lineups]);
+
+      const teamFineRules = useMemo(() => fineRules.filter(r => r.teamId === currentTeamId), [fineRules, currentTeamId]);
+      const teamFines = useMemo(() => fines.filter(f => f.teamId === currentTeamId), [fines, currentTeamId]);
+      const visibleFines = useMemo(() => {
+        return finesFilter === 'UNPAID' ? teamFines.filter(f => !f.isPaid && !f.isCancelled) : teamFines;
+      }, [teamFines, finesFilter]);
+
+      const cashSummary = useMemo(() => {
+        let collected = 0;
+        let unpaid = 0;
+        const debtMap = {};
+
+        teamFines.forEach(f => {
+          if (f.isCancelled) return;
+          if (f.isPaid) {
+            collected += f.amount;
+          } else {
+            unpaid += f.amount;
+            if (!debtMap[f.userId]) {
+              const u = teamUsers.find(x => x.id === f.userId);
+              debtMap[f.userId] = {
+                userId: f.userId,
+                name: u ? u.name : (f.userName || 'Bývalý hráč'),
+                debt: 0,
+                count: 0,
+              };
+            }
+            debtMap[f.userId].debt += f.amount;
+            debtMap[f.userId].count += 1;
+          }
+        });
+
+        const debtors = Object.values(debtMap).sort((a, b) => b.debt - a.debt);
+        return { collected, unpaid, debtors };
+      }, [teamFines, teamUsers]);
+
+      const availableMonths = useMemo(() => {
+        const set = new Set(teamEvents.filter(e => e.rawDate).map(e => e.rawDate.slice(0, 7)));
+        set.add('2026-11');
+        return Array.from(set).sort().reverse();
+      }, [teamEvents]);
+
+      const monthlyStats = useMemo(() => {
+        const monthEvents = teamEvents.filter(e => e.isFinished && !e.isCancelled && e.rawDate?.startsWith(statsMonth));
+        const total = monthEvents.length;
+
+        const rows = teamPlayers.map(player => {
+          let present = 0;
+          let excused = 0;
+          let unexcused = 0;
+
+          monthEvents.forEach(ev => {
+            const rec = attendances[`${ev.id}_${player.id}`];
+            if (rec?.status === 'PRESENT') present++;
+            else if (rec?.status === 'EXCUSED') excused++;
+            else unexcused++;
+          });
+
+          const rate = total > 0 ? Math.round((present / total) * 100) : 100;
+          return { player, present, excused, unexcused, total, rate };
+        }).sort((a, b) => b.rate - a.rate);
+
+        const avgRate = rows.length > 0 ? Math.round(rows.reduce((s, r) => s + r.rate, 0) / rows.length) : 100;
+        return { total, rows, avgRate };
+      }, [teamEvents, teamPlayers, attendances, statsMonth]);
+
+      // HANDLERY
+      const handleSwitchTeam = (teamId) => {
+        setCurrentTeamId(teamId);
+        const coachOfTeam = users.find(u => u.teamId === teamId && u.role === 'COACH') || users.find(u => u.teamId === teamId);
+        if (coachOfTeam) setCurrentUserId(coachOfTeam.id);
+        setTeamMenuOpen(false);
+        showToast('Tým přepnut');
+      };
+
+      const handleCreateTeam = (e) => {
+        e.preventDefault();
+        if (!newTeamForm.name.trim()) return;
+        const tid = `team-${Date.now()}`;
+        const code = (newTeamForm.name.trim().replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'TYM') + '-' + Math.floor(10 + Math.random() * 89);
+
+        const created = {
+          id: tid,
+          name: newTeamForm.name.trim(),
+          league: newTeamForm.league.trim() || 'Amatérská soutěž',
+          color: newTeamForm.color,
+          shortCode: code,
+        };
+
+        const coachId = `u-${tid}-coach`;
+        const captId = `u-${tid}-capt`;
+        const p1Id = `u-${tid}-p1`;
+
+        const starterUsers = [
+          { id: coachId, teamId: tid, name: 'Hlavní trenér', role: 'COACH', jersey: null, pos: null, phone: '777 100 100' },
+          { id: captId, teamId: tid, name: 'Kapitán týmu', role: 'CAPTAIN', jersey: 10, pos: 'MID', phone: '777 200 200' },
+          { id: p1Id, teamId: tid, name: 'Brankář týmu', role: 'PLAYER', jersey: 1, pos: 'GK', phone: '777 300 300' },
+        ];
+
+        const starterRules = [
+          { id: `r-${tid}-1`, teamId: tid, title: 'Pozdní příchod na sraz', amount: 50 },
+          { id: `r-${tid}-2`, teamId: tid, title: 'Neomluvená absence', amount: 150 },
+        ];
+
+        setTeams([...teams, created]);
+        setUsers([...users, ...starterUsers]);
+        setFineRules([...fineRules, ...starterRules]);
+        setCurrentTeamId(tid);
+        setCurrentUserId(coachId);
+        setNewTeamForm({ name: '', league: 'Okresní přebor', color: '#15803d' });
+        setNewTeamModalOpen(false);
+        setTeamMenuOpen(false);
+        showToast(`Tým ${created.name} byl založen`);
+      };
+
+      // Otevření modálu pro vytvoření / úpravu akce
+      const openCreateEventModal = (defaultType = 'TRAINING') => {
+        setEventForm({
+          type: defaultType, title: '', opponent: '', location: 'Hlavní hřiště',
+          rawDate: '2026-11-30', meetTime: '17:45', startTime: '18:00', notes: ''
+        });
+        setEventModalState({ mode: 'CREATE' });
+      };
+
+      const openEditEventModal = (ev) => {
+        setEventForm({
+          type: ev.type,
+          title: ev.title || '',
+          opponent: ev.opponent || '',
+          location: ev.location || '',
+          rawDate: ev.rawDate || '2026-11-30',
+          meetTime: ev.meetTime || '17:45',
+          startTime: ev.startTime || '18:00',
+          notes: ev.notes || '',
+        });
+        setEventDetailId(null);
+        setEventModalState({ mode: 'EDIT', eventId: ev.id });
+      };
+
+      const handleSaveEvent = (e) => {
+        e.preventDefault();
+        const isMatch = eventForm.type === 'MATCH';
+        const title = isMatch
+          ? `${currentTeam.name} – ${eventForm.opponent.trim() || 'Soupeř'}`
+          : (eventForm.title.trim() || 'Trénink');
+
+        if (eventModalState?.mode === 'EDIT') {
+          setEvents(events.map(ev => ev.id === eventModalState.eventId ? {
+            ...ev,
+            type: eventForm.type,
+            title,
+            opponent: isMatch ? eventForm.opponent.trim() : undefined,
+            location: eventForm.location.trim() || 'Hlavní hřiště',
+            rawDate: eventForm.rawDate,
+            meetTime: eventForm.meetTime,
+            startTime: eventForm.startTime,
+            notes: eventForm.notes.trim() || undefined,
+          } : ev));
+          showToast('Akce upravena');
+        } else {
+          const newEv = {
+            id: `ev-${Date.now()}`,
+            teamId: currentTeamId,
+            type: eventForm.type,
+            title,
+            opponent: isMatch ? eventForm.opponent.trim() : undefined,
+            location: eventForm.location.trim() || 'Hlavní hřiště',
+            rawDate: eventForm.rawDate,
+            meetTime: eventForm.meetTime,
+            startTime: eventForm.startTime,
+            notes: eventForm.notes.trim() || undefined,
+            isFinished: false,
+          };
+          setEvents([newEv, ...events]);
+          if (isMatch) setSelectedMatchId(newEv.id);
+          showToast(isMatch ? 'Zápas přidán do kalendáře' : 'Trénink přidán do kalendáře');
+        }
+        setEventModalState(null);
+      };
+
+      const requestDeleteEvent = (ev) => {
+        setConfirmDialog({
+          title: 'Smazat akci?',
+          message: `Opravdu chcete odstranit „${ev.title}“ z kalendáře? Smaže se i evidence docházky k této akci.`,
+          confirmLabel: 'Smazat akci',
+          onConfirm: () => {
+            setEvents(events.filter(e => e.id !== ev.id));
+            setEventDetailId(null);
+            setConfirmDialog(null);
+            showToast('Událost odstraněna');
+          }
+        });
+      };
+
+      const handleToggleEventFinished = (eventId) => {
+        const target = events.find(e => e.id === eventId);
+        if (target?.isCancelled) return;
+        const becomingFinished = target && !target.isFinished;
+        setEvents(events.map(e => e.id === eventId ? { ...e, isFinished: !e.isFinished } : e));
+        if (becomingFinished && target?.rawDate) {
+          const ym = target.rawDate.slice(0, 7);
+          setStatsMonth(ym);
+          showToast(`Uzavřeno do docházky (${getMonthLabel(ym)})`);
+        } else {
+          showToast('Akce znovu otevřena');
+        }
+      };
+
+      const handleConfirmCancelEvent = () => {
+        if (!cancelEventModalId) return;
+        setEvents(events.map(e => e.id === cancelEventModalId ? {
+          ...e,
+          isCancelled: true,
+          cancelReason: cancelEventReason.trim() || 'Zrušeno trenérem',
+        } : e));
+        setCancelEventModalId(null);
+        setCancelEventReason('');
+        setEventDetailId(null);
+        showToast('Akce zrušena');
+      };
+
+      const handleRestoreEvent = (eventId) => {
+        setEvents(events.map(e => e.id === eventId ? {
+          ...e,
+          isCancelled: false,
+          cancelReason: undefined,
+        } : e));
+        showToast('Akce byla obnovena');
+      };
+
+      const handleSetAttendance = (eventId, userId, status, reason) => {
+        const key = `${eventId}_${userId}`;
+        setAttendances(prev => ({
+          ...prev,
+          [key]: {
+            status,
+            reason: status === 'EXCUSED' ? (reason?.trim() || 'Omluven bez udání důvodu') : undefined,
+          }
+        }));
+      };
+
+      const handleSubmitExcuse = () => {
+        if (!excuseModalEventId) return;
+        handleSetAttendance(excuseModalEventId, currentUser.id, 'EXCUSED', excuseReason);
+        setExcuseModalEventId(null);
+        setExcuseReason('');
+        showToast('Omluvenka uložena');
+      };
+
+      // SESTAVA
+      const updateActiveLineup = (updater) => {
+        if (!activeMatch) return;
+        setLineups(prev => {
+          const cur = prev[activeMatch.id] || {
+            formation: '4-3-3',
+            assignments: {},
+            bench: [],
+            isPublished: false,
+            tacticalNotes: ''
+          };
+          return { ...prev, [activeMatch.id]: updater(cur) };
+        });
+      };
+
+      const handleChangeFormation = (newFormation) => {
+        const oldSlots = FORMATIONS[activeLineup.formation] || [];
+        const newSlots = FORMATIONS[newFormation] || [];
+        const gkUserId = activeLineup.assignments['gk'] || '';
+        const fieldPlayers = oldSlots
+          .filter(s => !s.isGk)
+          .map(s => activeLineup.assignments[s.id])
+          .filter(Boolean);
+
+        const newAssignments = {};
+        if (gkUserId) newAssignments['gk'] = gkUserId;
+        let idx = 0;
+        newSlots.filter(s => !s.isGk).forEach(slot => {
+          if (fieldPlayers[idx]) {
+            newAssignments[slot.id] = fieldPlayers[idx];
+            idx++;
+          }
+        });
+        updateActiveLineup(cur => ({ ...cur, formation: newFormation, assignments: newAssignments }));
+      };
+
+      const handleAssignToSlot = (slotId, userId) => {
+        updateActiveLineup(cur => {
+          const updated = { ...cur.assignments };
+          Object.keys(updated).forEach(k => {
+            if (updated[k] === userId) updated[k] = '';
+          });
+          updated[slotId] = userId;
+          return {
+            ...cur,
+            assignments: updated,
+            bench: cur.bench.filter(id => id !== userId)
+          };
+        });
+        setSlotPickerSlotId(null);
+      };
+
+      const handleClearSlot = (slotId) => {
+        updateActiveLineup(cur => ({
+          ...cur,
+          assignments: { ...cur.assignments, [slotId]: '' }
+        }));
+        setSlotPickerSlotId(null);
+      };
+
+      const handleToggleBench = (userId) => {
+        updateActiveLineup(cur => {
+          const onBench = cur.bench.includes(userId);
+          if (onBench) {
+            return { ...cur, bench: cur.bench.filter(id => id !== userId) };
+          }
+          const updated = { ...cur.assignments };
+          Object.keys(updated).forEach(k => {
+            if (updated[k] === userId) updated[k] = '';
+          });
+          return { ...cur, assignments: updated, bench: [...cur.bench, userId] };
+        });
+      };
+
+      const handleAutoFillLineup = () => {
+        if (!activeMatch) return;
+        const confirmed = teamPlayers.filter(p => attendances[`${activeMatch.id}_${p.id}`]?.status === 'PRESENT');
+        const pool = confirmed.length > 0 ? confirmed : teamPlayers;
+
+        if (pool.length === 0) {
+          showToast('V týmu zatím nejsou hráči');
+          return;
+        }
+
+        const slots = FORMATIONS[activeLineup.formation];
+        const newAssignments = {};
+        const gk = pool.find(p => p.pos === 'GK') || pool[0];
+        const gkSlot = slots.find(s => s.isGk);
+        if (gk && gkSlot) newAssignments[gkSlot.id] = gk.id;
+
+        const rest = pool.filter(p => p.id !== gk?.id);
+        let idx = 0;
+        slots.filter(s => !s.isGk).forEach(s => {
+          if (rest[idx]) {
+            newAssignments[s.id] = rest[idx].id;
+            idx++;
+          }
+        });
+
+        const bench = rest.slice(idx).map(p => p.id);
+        updateActiveLineup(cur => ({ ...cur, assignments: newAssignments, bench }));
+        showToast(confirmed.length > 0 ? 'Sestava doplněna z potvrzených hráčů' : 'Sestava doplněna ze soupisky');
+      };
+
+      // POKUTY
+      const openFineModal = () => {
+        const firstPlayer = teamPlayers[0]?.id || '';
+        const firstRule = teamFineRules[0];
+        setFineForm({
+          userId: firstPlayer,
+          ruleId: firstRule ? firstRule.id : 'CUSTOM',
+          title: '',
+          amount: firstRule ? firstRule.amount : 50,
+          note: ''
+        });
+        setNewFineModalOpen(true);
+      };
+
+      const handleIssueFine = (e) => {
+        e.preventDefault();
+        if (!fineForm.userId) return;
+        const targetUser = teamUsers.find(u => u.id === fineForm.userId);
+        const rule = teamFineRules.find(r => r.id === fineForm.ruleId);
+        const title = fineForm.ruleId === 'CUSTOM' ? (fineForm.title.trim() || 'Vlastní pokuta') : (rule?.title || 'Pokuta');
+
+        const newEntry = {
+          id: `f-${Date.now()}`,
+          teamId: currentTeamId,
+          userId: fineForm.userId,
+          userName: targetUser?.name || 'Hráč',
+          title,
+          amount: Math.max(1, Number(fineForm.amount) || 50),
+          isPaid: false,
+          date: 'Dnes',
+          note: fineForm.note.trim() || undefined
+        };
+        setFines([newEntry, ...fines]);
+        setNewFineModalOpen(false);
+        showToast('Pokuta zapsána');
+      };
+
+      const handleToggleFinePaid = (fineId) => {
+        const target = fines.find(f => f.id === fineId);
+        if (!target) return;
+        setFines(fines.map(f => f.id === fineId ? { ...f, isPaid: !f.isPaid } : f));
+        showToast(!target.isPaid ? 'Označeno jako zaplacené' : 'Vráceno mezi nezaplacené');
+      };
+
+      const requestCancelFine = (fine) => {
+        const fineUser = teamUsers.find(u => u.id === fine.userId);
+        setConfirmDialog({
+          title: 'Zrušit pokutu?',
+          message: `Opravdu chcete zrušit (stornovat) pokutu „${fine.title}“ (${fine.amount} Kč) pro hráče ${fineUser?.name || fine.userName || 'Hráč'}?`,
+          confirmLabel: 'Zrušit pokutu',
+          onConfirm: () => {
+            setFines(fines.map(f => f.id === fine.id ? { ...f, isCancelled: true } : f));
+            setConfirmDialog(null);
+            showToast('Pokuta zrušena');
+          }
+        });
+      };
+
+      const handleRestoreFine = (fineId) => {
+        setFines(fines.map(f => f.id === fineId ? { ...f, isCancelled: false } : f));
+        showToast('Pokuta obnovena');
+      };
+
+      const requestDeleteFine = (fine) => {
+        const fineUser = teamUsers.find(u => u.id === fine.userId);
+        setConfirmDialog({
+          title: 'Trvale smazat záznam?',
+          message: `Opravdu chcete trvale smazat pokutu „${fine.title}“ (${fine.amount} Kč) pro hráče ${fineUser?.name || fine.userName || 'Hráč'}?`,
+          confirmLabel: 'Smazat',
+          onConfirm: () => {
+            setFines(fines.filter(f => f.id !== fine.id));
+            setConfirmDialog(null);
+            showToast('Záznam odstraněn');
+          }
+        });
+      };
+
+      const handleAddRule = (e) => {
+        e.preventDefault();
+        if (!newRuleForm.title.trim()) return;
+        setFineRules([...fineRules, {
+          id: `r-${Date.now()}`,
+          teamId: currentTeamId,
+          title: newRuleForm.title.trim(),
+          amount: Math.max(1, Number(newRuleForm.amount) || 50)
+        }]);
+        setNewRuleForm({ title: '', amount: 100 });
+        showToast('Přidáno do sazebníku');
+      };
+
+      const handleDeleteRule = (ruleId) => {
+        setFineRules(fineRules.filter(r => r.id !== ruleId));
+      };
+
+      // ČLENOVÉ TÝMU (PŘIDÁNÍ, ÚPRAVA, ODEBRÁNÍ S POTVRZENÍM)
+      const openCreateMemberModal = () => {
+        setMemberForm({ name: '', nickname: '', jersey: '', pos: 'MID', role: 'PLAYER', phone: '' });
+        setMemberModalState({ mode: 'CREATE' });
+      };
+
+      const openEditMemberModal = (u) => {
+        setMemberForm({
+          name: u.name || '',
+          nickname: u.nickname || '',
+          jersey: u.jersey !== null && u.jersey !== undefined ? String(u.jersey) : '',
+          pos: u.pos || 'MID',
+          role: u.role || 'PLAYER',
+          phone: u.phone || '',
+        });
+        setMemberModalState({ mode: 'EDIT', userId: u.id });
+      };
+
+      const handleSaveMember = (e) => {
+        e.preventDefault();
+        if (!memberForm.name.trim()) return;
+
+        if (memberModalState?.mode === 'EDIT') {
+          const targetId = memberModalState.userId;
+          setUsers(users.map(u => u.id === targetId ? {
+            ...u,
+            name: memberForm.name.trim(),
+            nickname: memberForm.nickname.trim() || undefined,
+            jersey: memberForm.jersey ? Number(memberForm.jersey) : null,
+            pos: memberForm.role === 'COACH' ? null : memberForm.pos,
+            role: memberForm.role,
+            phone: memberForm.phone.trim() || undefined,
+          } : u));
+          showToast('Údaje člena upraveny');
+        } else {
+          const created = {
+            id: `u-${Date.now()}`,
+            teamId: currentTeamId,
+            name: memberForm.name.trim(),
+            nickname: memberForm.nickname.trim() || undefined,
+            jersey: memberForm.jersey ? Number(memberForm.jersey) : null,
+            pos: memberForm.role === 'COACH' ? null : memberForm.pos,
+            role: memberForm.role,
+            phone: memberForm.phone.trim() || undefined,
+          };
+          setUsers([...users, created]);
+          showToast(`${created.name} přidán na soupisku`);
+        }
+        setMemberModalState(null);
+      };
+
+      const requestRemovePlayer = (u) => {
+        if (u.id === currentUser.id) return;
+        const unpaidDebt = teamFines
+          .filter(f => f.userId === u.id && !f.isPaid)
+          .reduce((sum, f) => sum + f.amount, 0);
+
+        const debtWarning = unpaidDebt > 0
+          ? ` Upozornění: tento hráč má v pokladně neuhrazené dluhy ve výši ${unpaidDebt} Kč.`
+          : '';
+
+        setConfirmDialog({
+          title: 'Odebrat ze soupisky?',
+          message: `Opravdu chcete odebrat člena ${u.name} z týmu ${currentTeam.name}?${debtWarning}`,
+          confirmLabel: 'Odebrat člena',
+          onConfirm: () => {
+            setUsers(users.filter(x => x.id !== u.id));
+            setLineups(prev => {
+              const next = { ...prev };
+              Object.keys(next).forEach(mid => {
+                const l = next[mid];
+                const cleanAssign = { ...l.assignments };
+                Object.keys(cleanAssign).forEach(k => {
+                  if (cleanAssign[k] === u.id) cleanAssign[k] = '';
+                });
+                next[mid] = {
+                  ...l,
+                  assignments: cleanAssign,
+                  bench: (l.bench || []).filter(id => id !== u.id)
+                };
+              });
+              return next;
+            });
+            setConfirmDialog(null);
+            showToast(`${u.name} odebrán ze soupisky`);
+          }
+        });
+      };
+
+      const eventDetail = teamEvents.find(e => e.id === eventDetailId);
+
+      const navItems = [
+        { id: 'calendar', label: 'Kalendář a docházka', shortLabel: 'Kalendář', icon: 'calendar' },
+        { id: 'lineup', label: 'Zápasy a sestava', shortLabel: 'Sestava', icon: 'shield' },
+        { id: 'fines', label: 'Pokutová pokladna', shortLabel: 'Pokladna', icon: 'wallet' },
+        { id: 'team', label: 'Kabina a soupiska', shortLabel: 'Kabina', icon: 'users' },
+      ];
+
+      const roleLabel = isCoach ? 'Trenér' : isCaptain ? 'Kapitán' : 'Hráč';
+
+      const MonthlyStatsBlock = () => (
+        <div className="bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h3 className="font-semibold text-sm text-stone-900">Měsíční docházka</h3>
+              <p className="text-xs text-stone-500 mt-0.5">
+                {monthlyStats.total} {monthlyStats.total === 1 ? 'uzavřená akce' : monthlyStats.total >= 2 && monthlyStats.total <= 4 ? 'uzavřené akce' : 'uzavřených akcí'} · průměr {monthlyStats.avgRate} %
+              </p>
+            </div>
+            <select
+              value={statsMonth}
+              onChange={(e) => setStatsMonth(e.target.value)}
+              className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-700 focus:outline-none focus:border-green-700"
+            >
+              {availableMonths.map(ym => (
+                <option key={ym} value={ym}>{getMonthLabel(ym)}</option>
+              ))}
+            </select>
+          </div>
+
+          {monthlyStats.total === 0 ? (
+            <div className="text-center py-8 text-xs text-stone-500 bg-stone-50 rounded-xl border border-stone-100">
+              Za tento měsíc zatím nejsou žádné uzavřené tréninky ani zápasy.
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {monthlyStats.rows.map((row, idx) => (
+                <div key={row.player.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[13px]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-5 text-xs font-medium text-stone-400 tabular-nums shrink-0">
+                        {idx + 1}.
+                      </span>
+                      <span className="font-medium text-stone-800 truncate">{row.player.name}</span>
+                      <span className="text-xs text-stone-400 shrink-0 tabular-nums">
+                        {row.present}/{row.total} · {row.excused} oml.
+                      </span>
+                    </div>
+                    <span className={`font-semibold text-xs px-2 py-0.5 rounded-md tabular-nums shrink-0 ${
+                      row.rate >= 80 ? 'bg-green-50 text-green-800' :
+                      row.rate >= 60 ? 'bg-amber-50 text-amber-800' :
+                      'bg-rose-50 text-rose-800'
+                    }`}>
+                      {row.rate} %
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        row.rate >= 80 ? 'bg-green-600' :
+                        row.rate >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${row.rate}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+
+      const TeamDropdownMenu = () => (
+        <div className="absolute top-13 left-0 mt-1.5 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl p-2 z-50 animate-fade-up">
+          <div className="text-[11px] font-medium text-stone-400 px-3 py-1.5">Přepnout tým</div>
+          <div className="space-y-0.5">
+            {teams.map(t => (
+              <button
+                key={t.id}
+                onClick={() => handleSwitchTeam(t.id)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-medium transition ${
+                  t.id === currentTeamId ? 'bg-green-50 text-green-800' : 'hover:bg-stone-50 text-stone-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }}></span>
+                  <span className="truncate">{t.name}</span>
+                </div>
+                {t.id === currentTeamId && <Icon name="check" className="w-4 h-4 text-green-700" />}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 pt-2 border-t border-stone-100 space-y-0.5">
+            <button
+              onClick={() => { setTeamMenuOpen(false); setNewTeamModalOpen(true); }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-medium text-green-700 hover:bg-green-50 transition"
+            >
+              <Icon name="plus" className="w-4 h-4" />
+              Vytvořit nový tým
+            </button>
+            <button
+              onClick={() => {
+                setTeamMenuOpen(false);
+                setConfirmDialog({
+                  title: 'Obnovit výchozí data?',
+                  message: 'Všechny vaše přidané týmy, hráči, akce a pokuty budou nahrazeny výchozími daty.',
+                  confirmLabel: 'Obnovit data',
+                  onConfirm: executeResetDemo
+                });
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-stone-400 hover:bg-stone-50 hover:text-stone-600 transition"
+            >
+              <Icon name="rotateCcw" className="w-3.5 h-3.5" />
+              Obnovit výchozí data
+            </button>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="flex flex-col lg:flex-row h-full w-full bg-[#F6F7F5] text-stone-900 overflow-hidden relative">
+
+          {toastMsg && (
+            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[70] bg-stone-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg animate-fade-up">
+              {toastMsg}
+            </div>
+          )}
+
+          {teamMenuOpen && (
+            <div className="fixed inset-0 z-20" onClick={() => setTeamMenuOpen(false)}></div>
+          )}
+
+          {/* DESKTOP SIDEBAR */}
+          <aside className="hidden lg:flex lg:flex-col w-68 xl:w-72 bg-white border-r border-stone-200/80 shrink-0 z-30">
+            <div className="p-5 border-b border-stone-100">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg bg-green-700 text-white flex items-center justify-center font-bold text-xs">
+                  TS
+                </div>
+                <span className="font-bold text-[15px] tracking-tight text-stone-900">TeamSync</span>
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => setTeamMenuOpen(!teamMenuOpen)}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/80 transition text-left"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-8 h-8 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: currentTeam.color }}
+                    >
+                      {getInitials(currentTeam.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[13px] text-stone-900 truncate">{currentTeam.name}</div>
+                      <div className="text-[11px] text-stone-500 truncate">{currentTeam.league}</div>
+                    </div>
+                  </div>
+                  <Icon name="chevronDown" className="w-4 h-4 text-stone-400 shrink-0" />
+                </button>
+                {teamMenuOpen && <TeamDropdownMenu />}
+              </div>
+            </div>
+
+            <nav className="flex-1 p-3 space-y-1">
+              {navItems.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition ${
+                    activeTab === tab.id
+                      ? 'bg-green-50 text-green-800 font-semibold'
+                      : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
+                  }`}
+                >
+                  <Icon name={tab.icon} className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="p-4 border-t border-stone-100 bg-stone-50/50 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-stone-500">Přihlášen</span>
+                <span className="font-semibold text-stone-800 truncate max-w-[140px]">{currentUser?.name}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 bg-stone-200/70 p-1 rounded-xl">
+                {['COACH', 'CAPTAIN', 'PLAYER'].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => switchRoleInCurrentTeam(r)}
+                    className={`py-1.5 rounded-lg text-[11px] font-semibold transition ${
+                      currentUser?.role === r
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
+                  >
+                    {r === 'COACH' ? 'Trenér' : r === 'CAPTAIN' ? 'Kapitán' : 'Hráč'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* HLAVNÍ ČÁST */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+
+            {/* MOBILNÍ HEADER */}
+            <header className="lg:hidden safe-top bg-white border-b border-stone-200/80 px-4 py-2.5 shrink-0 z-30">
+              <div className="flex items-center justify-between gap-2">
+                <div className="relative">
+                  <button
+                    onClick={() => setTeamMenuOpen(!teamMenuOpen)}
+                    className="flex items-center gap-2.5 py-1 -ml-1 px-1 rounded-xl hover:bg-stone-50 transition text-left"
+                  >
+                    <div
+                      className="w-9 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: currentTeam.color }}
+                    >
+                      {getInitials(currentTeam.name)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <h1 className="font-semibold text-sm text-stone-900 leading-tight truncate max-w-[135px]">
+                          {currentTeam.name}
+                        </h1>
+                        <Icon name="chevronDown" className="w-3.5 h-3.5 text-stone-400" />
+                      </div>
+                      <span className="text-[11px] text-stone-500 block">
+                        {currentUser?.name} · {roleLabel}
+                      </span>
+                    </div>
+                  </button>
+                  {teamMenuOpen && <TeamDropdownMenu />}
+                </div>
+
+                <div className="flex items-center gap-0.5 bg-stone-100 p-1 rounded-xl border border-stone-200/70">
+                  {['COACH', 'CAPTAIN', 'PLAYER'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => switchRoleInCurrentTeam(r)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition ${
+                        currentUser?.role === r
+                          ? 'bg-white text-stone-900 shadow-sm'
+                          : 'text-stone-500 hover:text-stone-800'
+                      }`}
+                    >
+                      {r === 'COACH' ? 'Trenér' : r === 'CAPTAIN' ? 'Kapitán' : 'Hráč'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </header>
+
+            <main className="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8">
+              <div className="max-w-5xl mx-auto space-y-5">
+
+                {/* DESKTOP HLAVIČKA */}
+                <div className="hidden lg:flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-stone-900 tracking-tight">
+                      {navItems.find(n => n.id === activeTab)?.label}
+                    </h2>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      {currentTeam.name} · přihlášen jako {currentUser?.name} ({roleLabel})
+                    </p>
+                  </div>
+                  {activeTab === 'calendar' && isCoach && (
+                    <button
+                      onClick={() => openCreateEventModal('TRAINING')}
+                      className="py-2 px-4 bg-green-700 hover:bg-green-800 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                    >
+                      <Icon name="plus" className="w-4 h-4" />
+                      <span>Přidat akci</span>
+                    </button>
+                  )}
+                  {activeTab === 'team' && (isCoach || isCaptain) && (
+                    <button
+                      onClick={openCreateMemberModal}
+                      className="py-2 px-4 bg-green-700 hover:bg-green-800 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                    >
+                      <Icon name="userPlus" className="w-4 h-4" />
+                      <span>Přidat člena</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* -------------------------------------------------- */}
+                {/* TAB 1: KALENDÁŘ A DOCHÁZKA                         */}
+                {/* -------------------------------------------------- */}
+                {activeTab === 'calendar' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-7 space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center bg-white p-1 rounded-xl border border-stone-200/90 shadow-sm text-xs">
+                          <button
+                            onClick={() => setCalendarView('UPCOMING')}
+                            className={`px-3 py-1.5 rounded-lg font-medium transition ${calendarView === 'UPCOMING' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:text-stone-900'}`}
+                          >
+                            Nadcházející ({upcomingEvents.length})
+                          </button>
+                          <button
+                            onClick={() => setCalendarView('PAST')}
+                            className={`px-3 py-1.5 rounded-lg font-medium transition ${calendarView === 'PAST' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:text-stone-900'}`}
+                          >
+                            Proběhlé ({pastEvents.length})
+                          </button>
+                          <button
+                            onClick={() => setCalendarView('STATS')}
+                            className={`lg:hidden px-3 py-1.5 rounded-lg font-medium transition ${calendarView === 'STATS' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:text-stone-900'}`}
+                          >
+                            Docházka
+                          </button>
+                        </div>
+
+                        {isCoach && (
+                          <button
+                            onClick={() => openCreateEventModal('TRAINING')}
+                            className="lg:hidden py-2 px-3 bg-green-700 hover:bg-green-800 text-white font-semibold text-xs rounded-xl flex items-center gap-1 shadow-sm transition active:scale-95 shrink-0"
+                          >
+                            <Icon name="plus" className="w-3.5 h-3.5" />
+                            <span>Přidat</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {(calendarView === 'UPCOMING' || calendarView === 'PAST') && (
+                        <div className="space-y-3">
+                          {(calendarView === 'UPCOMING' ? upcomingEvents : pastEvents).map(ev => {
+                            const isMatch = ev.type === 'MATCH';
+                            const myStatus = attendances[`${ev.id}_${currentUser.id}`];
+                            const confirmedCount = teamPlayers.filter(p => attendances[`${ev.id}_${p.id}`]?.status === 'PRESENT').length;
+                            const excusedCount = teamPlayers.filter(p => attendances[`${ev.id}_${p.id}`]?.status === 'EXCUSED').length;
+                            const pendingCount = Math.max(0, teamPlayers.length - confirmedCount - excusedCount);
+
+                            return (
+                              <div key={ev.id} className={`bg-white border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 ${ev.isCancelled ? 'border-rose-200/80 opacity-85' : 'border-stone-200/90'}`}>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${ev.isCancelled ? 'bg-stone-400' : isMatch ? 'bg-rose-600' : 'bg-green-600'}`}></span>
+                                    <span className="text-xs font-medium text-stone-500">
+                                      {isMatch ? 'Zápas' : 'Trénink'} · {formatCzechDate(ev.rawDate)}
+                                    </span>
+                                    {ev.isCancelled && (
+                                      <span className="text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">
+                                        Zrušeno
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => setEventDetailId(ev.id)}
+                                    className="text-xs font-medium text-stone-500 hover:text-stone-900 flex items-center gap-0.5"
+                                  >
+                                    <span>Přehled</span>
+                                    <Icon name="chevronRight" className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                <div>
+                                  <h3 className={`font-semibold text-[15px] leading-snug ${ev.isCancelled ? 'line-through text-stone-500' : 'text-stone-900'}`}>
+                                    {ev.title}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-stone-500">
+                                    <span className="flex items-center gap-1.5">
+                                      <Icon name="clock" className="w-3.5 h-3.5 text-stone-400" />
+                                      Sraz {ev.meetTime || ev.startTime} · {isMatch ? 'výkop' : 'začátek'} {ev.startTime}
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                      <Icon name="mapPin" className="w-3.5 h-3.5 text-stone-400" />
+                                      {ev.location}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {ev.isCancelled ? (
+                                  <p className="text-xs text-rose-700 bg-rose-50/70 border border-rose-200/70 px-3 py-2 rounded-xl">
+                                    Akce byla zrušena{ev.cancelReason ? `: ${ev.cancelReason}` : '.'}
+                                  </p>
+                                ) : ev.notes ? (
+                                  <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200/70 px-3 py-2 rounded-xl">
+                                    {ev.notes}
+                                  </p>
+                                ) : null}
+
+                                {!ev.isCancelled && (
+                                  <div
+                                    onClick={() => setEventDetailId(ev.id)}
+                                    className="cursor-pointer flex items-center justify-between text-xs pt-1 text-stone-500"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-green-700 font-medium">{confirmedCount} jde</span>
+                                      <span className="text-amber-700 font-medium">{excusedCount} omluveno</span>
+                                      <span>{pendingCount} čeká</span>
+                                    </div>
+                                    {!isCoach && myStatus?.status === 'EXCUSED' && myStatus.reason && (
+                                      <span className="text-[11px] text-amber-700 truncate max-w-[160px]">
+                                        Omluva: {myStatus.reason}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Hráč a Kapitán potvrzují/omlouvají svou účast */}
+                                {!ev.isFinished && !ev.isCancelled && !isCoach && (
+                                  <div className="grid grid-cols-2 gap-2 pt-1">
+                                    <button
+                                      onClick={() => {
+                                        handleSetAttendance(ev.id, currentUser.id, 'PRESENT');
+                                        showToast('Účast potvrzena');
+                                      }}
+                                      className={`py-2.5 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                                        myStatus?.status === 'PRESENT'
+                                          ? 'bg-green-700 text-white'
+                                          : 'bg-stone-100 hover:bg-stone-200/80 text-stone-700'
+                                      }`}
+                                    >
+                                      <Icon name="check" className="w-3.5 h-3.5" />
+                                      <span>{isMatch ? 'Potvrdit účast' : 'Přijdu'}</span>
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        setExcuseModalEventId(ev.id);
+                                        setExcuseReason(myStatus?.reason || '');
+                                      }}
+                                      className={`py-2.5 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                                        myStatus?.status === 'EXCUSED'
+                                          ? 'bg-amber-600 text-white'
+                                          : 'bg-stone-100 hover:bg-stone-200/80 text-stone-700'
+                                      }`}
+                                    >
+                                      <Icon name="x" className="w-3.5 h-3.5" />
+                                      <span>{myStatus?.status === 'EXCUSED' ? 'Omluven (upravit)' : 'Omluvit se'}</span>
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Trenér spravuje docházku, upravuje nebo ruší akci */}
+                                {isCoach && (
+                                  <div className="pt-2.5 border-t border-stone-100 flex flex-wrap justify-between items-center gap-2 text-xs">
+                                    {ev.isCancelled ? (
+                                      <>
+                                        <button
+                                          onClick={() => handleRestoreEvent(ev.id)}
+                                          className="text-green-700 font-medium hover:underline"
+                                        >
+                                          Obnovit akci
+                                        </button>
+                                        <button
+                                          onClick={() => requestDeleteEvent(ev)}
+                                          className="text-rose-600 hover:underline font-medium"
+                                        >
+                                          Smazat trvale
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="flex items-center gap-3">
+                                          <button
+                                            onClick={() => setEventDetailId(ev.id)}
+                                            className="text-green-700 font-medium hover:underline"
+                                          >
+                                            Zapsat docházku
+                                          </button>
+                                          <button
+                                            onClick={() => openEditEventModal(ev)}
+                                            className="text-stone-500 hover:text-stone-800"
+                                          >
+                                            Upravit
+                                          </button>
+                                          {!ev.isFinished && (
+                                            <button
+                                              onClick={() => { setCancelEventModalId(ev.id); setCancelEventReason(''); }}
+                                              className="text-rose-600 hover:text-rose-700"
+                                            >
+                                              Zrušit
+                                            </button>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => handleToggleEventFinished(ev.id)}
+                                          className="text-stone-500 hover:text-stone-800 font-medium"
+                                        >
+                                          {ev.isFinished ? 'Znovu otevřít' : 'Uzavřít do statistik'}
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {(calendarView === 'UPCOMING' ? upcomingEvents : pastEvents).length === 0 && (
+                            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-1.5">
+                              <p className="font-semibold text-sm text-stone-700">Žádné události</p>
+                              <p className="text-xs text-stone-500">Zatím zde není žádný naplánovaný trénink ani zápas.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {calendarView === 'STATS' && (
+                        <div className="lg:hidden">
+                          <MonthlyStatsBlock />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="hidden lg:block lg:col-span-5">
+                      <MonthlyStatsBlock />
+                    </div>
+                  </div>
+                )}
+
+                {/* -------------------------------------------------- */}
+                {/* TAB 2: ZÁPASY A SESTAVA                           */}
+                {/* -------------------------------------------------- */}
+                {activeTab === 'lineup' && (
+                  <div>
+                    {!activeMatch ? (
+                      <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-3 max-w-md mx-auto">
+                        <p className="font-semibold text-sm text-stone-700">Žádný nadcházející zápas</p>
+                        <p className="text-xs text-stone-500">Pro složení sestavy nejprve přidejte zápas v kalendáři.</p>
+                        {isCoach && (
+                          <button
+                            onClick={() => openCreateEventModal('MATCH')}
+                            className="py-2 px-4 bg-green-700 text-white font-medium text-xs rounded-xl"
+                          >
+                            Naplánovat zápas
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Čistý výběr zápasu (pokud je více zápasů, případně pro rychlé přidání dalšího) */}
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                          {teamMatches.map(m => {
+                            const isSelected = m.id === activeMatch.id;
+                            const isPub = lineups[m.id]?.isPublished;
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => setSelectedMatchId(m.id)}
+                                className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border transition ${
+                                  isSelected
+                                    ? 'bg-white border-stone-300 text-stone-900 shadow-sm'
+                                    : 'bg-stone-100/80 border-transparent text-stone-600 hover:bg-white hover:border-stone-200'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${isPub ? 'bg-green-600' : 'bg-amber-500'}`}></span>
+                                <span className="text-stone-400">{formatCzechDate(m.rawDate)}</span>
+                                <span className="font-semibold">{m.opponent ? `vs. ${m.opponent}` : m.title}</span>
+                              </button>
+                            );
+                          })}
+                          {isCoach && (
+                            <button
+                              onClick={() => openCreateEventModal('MATCH')}
+                              className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-green-700 hover:bg-green-50 border border-dashed border-green-300 transition"
+                            >
+                              <Icon name="plus" className="w-3.5 h-3.5" />
+                              <span>Nový zápas</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                          <div className="lg:col-span-5 space-y-4">
+                            <div className="bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-3.5">
+
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium text-stone-500">
+                                {formatCzechDate(activeMatch.rawDate)} · {activeMatch.startTime}
+                              </span>
+
+                              {isCoach ? (
+                                <select
+                                  value={activeLineup.formation}
+                                  onChange={(e) => handleChangeFormation(e.target.value)}
+                                  className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1 text-xs font-semibold text-stone-800"
+                                >
+                                  <option value="4-3-3">Rozestavení 4-3-3</option>
+                                  <option value="4-4-2">Rozestavení 4-4-2</option>
+                                  <option value="3-5-2">Rozestavení 3-5-2</option>
+                                </select>
+                              ) : (
+                                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-1 rounded-lg">
+                                  {activeLineup.formation}
+                                </span>
+                              )}
+                            </div>
+
+                            <h2 className="font-semibold text-base text-stone-900">{activeMatch.title}</h2>
+
+                            <div className="space-y-1.5 text-xs">
+                              <span className="font-medium text-stone-500 block">Pokyny trenéra</span>
+                              {isCoach ? (
+                                <input
+                                  type="text"
+                                  value={activeLineup.tacticalNotes}
+                                  onChange={(e) => updateActiveLineup(cur => ({ ...cur, tacticalNotes: e.target.value }))}
+                                  placeholder="Např. vysoký presink, standardky..."
+                                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-none focus:border-green-700"
+                                />
+                              ) : (
+                                <p className="text-stone-700 bg-stone-50 border border-stone-200/70 rounded-xl px-3 py-2.5">
+                                  {activeLineup.tacticalNotes || 'Bez speciálních pokynů.'}
+                                </p>
+                              )}
+                            </div>
+
+                            {isCoach && (
+                              <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
+                                <button
+                                  onClick={handleAutoFillLineup}
+                                  className="py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-medium text-xs flex items-center gap-1.5 transition"
+                                >
+                                  <Icon name="wand" className="w-3.5 h-3.5 text-stone-600" />
+                                  <span>Doplnit automaticky</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    updateActiveLineup(cur => ({ ...cur, isPublished: !cur.isPublished }));
+                                    showToast(!activeLineup.isPublished ? 'Sestava zveřejněna týmu' : 'Sestava skryta do konceptu');
+                                  }}
+                                  className={`py-2 px-3.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition ${
+                                    activeLineup.isPublished
+                                      ? 'bg-green-700 text-white'
+                                      : 'bg-amber-600 text-white'
+                                  }`}
+                                >
+                                  <Icon name={activeLineup.isPublished ? 'check' : 'eye'} className="w-3.5 h-3.5" />
+                                  <span>{activeLineup.isPublished ? 'Zveřejněno' : 'Zveřejnit týmu'}</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {(isCoach || activeLineup.isPublished) && (
+                            <div className="bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-xs text-stone-700">
+                                  Střídačka ({activeLineup.bench.length})
+                                </h3>
+                                {isCoach && <span className="text-[11px] text-stone-400">Kliknutím přidáte nebo odeberete</span>}
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {activeLineup.bench.map(uid => {
+                                  const u = teamUsers.find(x => x.id === uid);
+                                  if (!u) return null;
+                                  return (
+                                    <span key={uid} className="inline-flex items-center gap-1.5 bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800">
+                                      <span className="text-stone-500">#{u.jersey || '–'}</span>
+                                      <span>{u.name}</span>
+                                      {isCoach && (
+                                        <button onClick={() => handleToggleBench(uid)} className="text-stone-400 hover:text-rose-600 ml-1">✕</button>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                                {activeLineup.bench.length === 0 && (
+                                  <span className="text-xs text-stone-400">Zatím nikdo na střídačce</span>
+                                )}
+                              </div>
+
+                              {isCoach && (
+                                <div className="pt-2.5 border-t border-stone-100">
+                                  <span className="text-[11px] font-medium text-stone-400 block mb-2">
+                                    K dispozici z kabiny
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {teamPlayers
+                                      .filter(p => !Object.values(activeLineup.assignments).includes(p.id) && !activeLineup.bench.includes(p.id))
+                                      .map(p => {
+                                        const st = attendances[`${activeMatch.id}_${p.id}`]?.status;
+                                        return (
+                                          <button
+                                            key={p.id}
+                                            onClick={() => handleToggleBench(p.id)}
+                                            className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition ${
+                                              st === 'PRESENT' ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' :
+                                              st === 'EXCUSED' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                                              'bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100'
+                                            }`}
+                                          >
+                                            + {p.name}
+                                          </button>
+                                        );
+                                      })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="lg:col-span-7 flex justify-center">
+                          {!isCoach && !activeLineup.isPublished ? (
+                            <div className="w-full bg-white border border-stone-200 rounded-2xl p-10 text-center space-y-2 shadow-sm">
+                              <div className="w-11 h-11 rounded-2xl bg-stone-100 text-stone-500 flex items-center justify-center mx-auto">
+                                <Icon name="eyeOff" className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-semibold text-sm text-stone-800">Sestava zatím není zveřejněná</h3>
+                              <p className="text-xs text-stone-500">Trenér sestavu ještě připravuje. Jakmile ji potvrdí, zobrazí se zde.</p>
+                            </div>
+                          ) : (
+                            <div className="relative w-full max-w-[390px] aspect-[9/13] pitch-grass rounded-3xl overflow-hidden border-4 border-white shadow-lg">
+                              <div className="absolute inset-2.5 border border-white/40 rounded-xl pointer-events-none">
+                                <div className="absolute top-1/2 left-0 right-0 h-px bg-white/40 -translate-y-1/2"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/40"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white/60"></div>
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-16 border-b border-x border-white/40"></div>
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-7 border-b border-x border-white/40"></div>
+                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-36 h-16 border-t border-x border-white/40"></div>
+                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-7 border-t border-x border-white/40"></div>
+                              </div>
+
+                              {(FORMATIONS[activeLineup.formation] || FORMATIONS['4-3-3']).map(slot => {
+                                const uid = activeLineup.assignments[slot.id];
+                                const player = teamUsers.find(u => u.id === uid);
+                                const playerMatchStatus = player ? attendances[`${activeMatch.id}_${player.id}`]?.status : null;
+                                const isUnavailable = playerMatchStatus === 'EXCUSED' || playerMatchStatus === 'UNEXCUSED';
+
+                                return (
+                                  <div
+                                    key={slot.id}
+                                    style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
+                                    onClick={() => isCoach && setSlotPickerSlotId(slot.id)}
+                                    className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition ${
+                                      isCoach ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
+                                    }`}
+                                  >
+                                    <div className={`relative w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 ${
+                                      isUnavailable
+                                        ? 'bg-rose-100 text-rose-800 border-rose-500'
+                                        : slot.isGk
+                                        ? 'bg-amber-300 text-stone-900 border-white'
+                                        : player
+                                        ? 'bg-white text-stone-900 border-white'
+                                        : 'bg-black/25 text-white/90 border-dashed border-white/70'
+                                    }`}>
+                                      {player ? (player.jersey || getInitials(player.name)) : '+'}
+                                      {player?.role === 'CAPTAIN' && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-stone-900 text-white rounded-full flex items-center justify-center font-bold text-[8px] border border-white">
+                                          C
+                                        </span>
+                                      )}
+                                      {isUnavailable && (
+                                        <span title="Hráč se omluvil" className="absolute -bottom-1 -right-1 w-4 h-4 bg-rose-600 text-white rounded-full flex items-center justify-center font-bold text-[9px] border border-white">
+                                          !
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="mt-1 px-2 py-0.5 bg-stone-900/85 text-white text-[10px] font-medium rounded-md shadow max-w-[82px] truncate text-center">
+                                      {player ? (player.nickname || player.name.split(' ')[1] || player.name) : slot.name}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                )}
+
+                {/* -------------------------------------------------- */}
+                {/* TAB 3: POKUTOVÁ POKLADNA                           */}
+                {/* -------------------------------------------------- */}
+                {activeTab === 'fines' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white border border-stone-200/90 rounded-2xl p-4 shadow-sm">
+                          <span className="text-xs font-medium text-stone-500 block mb-1">Vybráno v kase</span>
+                          <div className="text-2xl font-bold text-stone-900 tabular-nums">
+                            {cashSummary.collected.toLocaleString('cs-CZ')} <span className="text-xs font-medium text-stone-400">Kč</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white border border-stone-200/90 rounded-2xl p-4 shadow-sm">
+                          <span className="text-xs font-medium text-stone-500 block mb-1">Zbývá uhradit</span>
+                          <div className="text-2xl font-bold text-amber-700 tabular-nums">
+                            {cashSummary.unpaid.toLocaleString('cs-CZ')} <span className="text-xs font-medium text-stone-400">Kč</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isCaptain && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={openFineModal}
+                            className="py-2.5 px-3 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95"
+                          >
+                            <Icon name="plus" className="w-4 h-4" />
+                            <span>Udělit pokutu</span>
+                          </button>
+
+                          <button
+                            onClick={() => setManageRulesModalOpen(true)}
+                            className="py-2.5 px-3 bg-white hover:bg-stone-50 text-stone-700 font-medium rounded-xl text-xs flex items-center justify-center gap-1.5 border border-stone-200 shadow-sm transition active:scale-95"
+                          >
+                            <Icon name="settings" className="w-4 h-4" />
+                            <span>Sazebník</span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-3">
+                        <h3 className="font-semibold text-sm text-stone-900">Přehled dluhů hráčů</h3>
+
+                        <div className="space-y-2">
+                          {cashSummary.debtors.map((d, idx) => (
+                            <div key={d.userId} className="flex items-center justify-between text-[13px] py-2 border-b border-stone-100 last:border-0">
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-5 text-xs font-medium text-stone-400 tabular-nums">{idx + 1}.</span>
+                                <div>
+                                  <div className="font-medium text-stone-800">{d.name}</div>
+                                  <span className="text-[11px] text-stone-400">{d.count} {d.count === 1 ? 'položka' : d.count >= 2 && d.count <= 4 ? 'položky' : 'položek'}</span>
+                                </div>
+                              </div>
+                              <span className="font-semibold text-amber-700 tabular-nums">{d.debt} Kč</span>
+                            </div>
+                          ))}
+                          {cashSummary.debtors.length === 0 && (
+                            <div className="text-center py-4 text-xs text-stone-500">
+                              Všichni hráči mají své pokuty vyrovnané.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-7 bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-semibold text-sm text-stone-900">Historie pokut</h3>
+                        <div className="flex items-center bg-stone-100 p-0.5 rounded-lg text-[11px]">
+                          <button
+                            onClick={() => setFinesFilter('ALL')}
+                            className={`px-2.5 py-1 rounded-md font-medium transition ${finesFilter === 'ALL' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}
+                          >
+                            Vše ({teamFines.length})
+                          </button>
+                          <button
+                            onClick={() => setFinesFilter('UNPAID')}
+                            className={`px-2.5 py-1 rounded-md font-medium transition ${finesFilter === 'UNPAID' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}
+                          >
+                            Nezaplacené
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-stone-100">
+                        {visibleFines.map(fine => {
+                          const fineUser = teamUsers.find(u => u.id === fine.userId);
+                          return (
+                            <div key={fine.id} className={`py-3 flex items-center justify-between gap-3 text-[13px] ${fine.isCancelled ? 'opacity-60' : ''}`}>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`font-semibold ${fine.isCancelled ? 'line-through text-stone-500' : 'text-stone-900'}`}>
+                                    {fineUser?.name || fine.userName || 'Hráč'}
+                                  </span>
+                                  <span className="text-xs text-stone-400">· {fine.date}</span>
+                                </div>
+                                <div className={`text-xs mt-0.5 truncate ${fine.isCancelled ? 'line-through text-stone-400' : 'text-stone-600'}`}>
+                                  {fine.title}
+                                </div>
+                                {fine.note && <div className="text-[11px] text-stone-400 mt-0.5">{fine.note}</div>}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className={`font-semibold tabular-nums ${fine.isCancelled ? 'line-through text-stone-400' : 'text-stone-900'}`}>
+                                  {fine.amount} Kč
+                                </span>
+                                {fine.isCancelled ? (
+                                  isCaptain ? (
+                                    <button
+                                      onClick={() => handleRestoreFine(fine.id)}
+                                      title="Obnovit zrušenou pokutu"
+                                      className="text-[11px] font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 px-2 py-0.5 rounded-md transition"
+                                    >
+                                      Zrušeno (obnovit)
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                                      Zrušeno
+                                    </span>
+                                  )
+                                ) : fine.isPaid ? (
+                                  isCaptain ? (
+                                    <button
+                                      onClick={() => handleToggleFinePaid(fine.id)}
+                                      title="Kliknutím vrátíte mezi nezaplacené"
+                                      className="text-[11px] font-medium text-green-800 bg-green-50 hover:bg-green-100 px-2 py-0.5 rounded-md transition"
+                                    >
+                                      Zaplaceno
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] font-medium text-green-800 bg-green-50 px-2 py-0.5 rounded-md">
+                                      Zaplaceno
+                                    </span>
+                                  )
+                                ) : isCaptain ? (
+                                  <button
+                                    onClick={() => handleToggleFinePaid(fine.id)}
+                                    className="text-[11px] font-medium bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg transition active:scale-95"
+                                  >
+                                    Uhradit
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md">
+                                    Dluží
+                                  </span>
+                                )}
+                                {isCaptain && !fine.isCancelled && (
+                                  <button
+                                    onClick={() => requestCancelFine(fine)}
+                                    title="Zrušit (stornovat) pokutu"
+                                    className="text-[11px] font-medium text-stone-500 hover:text-rose-600 px-1.5 py-1 rounded-lg hover:bg-rose-50 transition"
+                                  >
+                                    Zrušit
+                                  </button>
+                                )}
+                                {isCaptain && (
+                                  <button
+                                    onClick={() => requestDeleteFine(fine)}
+                                    title="Trvale smazat záznam"
+                                    className="p-1 text-stone-400 hover:text-rose-600 transition"
+                                  >
+                                    <Icon name="trash" className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {visibleFines.length === 0 && (
+                          <p className="text-xs text-stone-400 py-8 text-center">Žádné záznamy k zobrazení.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* -------------------------------------------------- */}
+                {/* TAB 4: KABINA / TÝM                                */}
+                {/* -------------------------------------------------- */}
+                {activeTab === 'team' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-4 bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-11 h-11 rounded-xl text-white font-bold text-sm flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: currentTeam.color }}
+                          >
+                            {getInitials(currentTeam.name)}
+                          </div>
+                          <div>
+                            <h2 className="font-semibold text-base text-stone-900">{currentTeam.name}</h2>
+                            <span className="text-xs text-stone-500">{currentTeam.league}</span>
+                          </div>
+                        </div>
+
+                        {(isCoach || isCaptain) && (
+                          <button
+                            onClick={openCreateMemberModal}
+                            className="lg:hidden py-2 px-3 bg-green-700 hover:bg-green-800 text-white font-medium text-xs rounded-xl flex items-center gap-1 shadow-sm transition active:scale-95"
+                          >
+                            <Icon name="userPlus" className="w-3.5 h-3.5" />
+                            <span>Přidat</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-stone-50 p-3 rounded-xl border border-stone-200/70 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[11px] text-stone-400 block">Zvací kód týmu</span>
+                          <strong className="text-stone-900 tracking-wide text-sm">{currentTeam.shortCode}</strong>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(currentTeam.shortCode);
+                            showToast(`Kód ${currentTeam.shortCode} zkopírován`);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 font-medium text-xs flex items-center gap-1"
+                        >
+                          <Icon name="copy" className="w-3.5 h-3.5" />
+                          <span>Kopírovat</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-8 bg-white border border-stone-200/90 rounded-2xl p-5 shadow-sm">
+                      <h3 className="font-semibold text-sm text-stone-900 mb-3">
+                        Soupiska ({teamUsers.length})
+                      </h3>
+                      <div className="divide-y divide-stone-100">
+                        {teamUsers.map(u => (
+                          <div key={u.id} className="py-2.5 flex items-center justify-between text-[13px]">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-full bg-stone-100 border border-stone-200/80 flex items-center justify-center font-semibold text-xs text-stone-700 shrink-0">
+                                {u.jersey ? `#${u.jersey}` : getInitials(u.name)}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-stone-900 truncate">
+                                  {u.name} {u.nickname && <span className="text-stone-400 font-normal">({u.nickname})</span>}
+                                </div>
+                                <div className="text-xs text-stone-500">
+                                  {u.role === 'COACH' ? 'Trenér' : u.role === 'CAPTAIN' ? 'Kapitán' : (u.pos || 'Hráč')}
+                                  {u.role === 'CAPTAIN' && u.pos ? ` · ${u.pos}` : ''}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              {u.phone && (
+                                <>
+                                  <a href={`tel:${u.phone}`} className="p-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-green-50 hover:text-green-800 transition" title="Zavolat">
+                                    <Icon name="phone" className="w-3.5 h-3.5" />
+                                  </a>
+                                  <a href={`sms:${u.phone}`} className="p-2 rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition" title="SMS">
+                                    <Icon name="messageSquare" className="w-3.5 h-3.5" />
+                                  </a>
+                                </>
+                              )}
+                              {isCoach && (
+                                <button
+                                  onClick={() => openEditMemberModal(u)}
+                                  title="Upravit člena / roli"
+                                  className="p-2 rounded-xl text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition"
+                                >
+                                  <Icon name="edit" className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {isCoach && u.id !== currentUser.id && (
+                                <button
+                                  onClick={() => requestRemovePlayer(u)}
+                                  title="Odebrat ze soupisky"
+                                  className="p-2 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                >
+                                  <Icon name="trash" className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
+
+            {/* MOBILNÍ SPODNÍ NAVIGACE */}
+            <nav className="lg:hidden safe-bottom bg-white border-t border-stone-200/80 px-2 py-1.5 flex items-center justify-around shrink-0 z-20">
+              {navItems.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+                    activeTab === tab.id ? 'text-green-700 font-semibold' : 'text-stone-400 hover:text-stone-700'
+                  }`}
+                >
+                  <Icon name={tab.icon} className="w-5 h-5" />
+                  <span className="text-[11px]">{tab.shortLabel}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* ==================================================== */}
+          {/* POTVRZOVACÍ MODÁL (OCHRANA PROTI OMILU)              */}
+          {/* ==================================================== */}
+          {confirmDialog && (
+            <div className="fixed inset-0 z-[60] bg-stone-900/45 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-4 animate-fade-up">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <Icon name="alertTriangle" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base text-stone-900">{confirmDialog.title}</h3>
+                    <p className="text-xs text-stone-600 mt-1 leading-relaxed">{confirmDialog.message}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    onClick={() => setConfirmDialog(null)}
+                    className="py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-xs transition"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    onClick={confirmDialog.onConfirm}
+                    className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition"
+                  >
+                    {confirmDialog.confirmLabel || 'Potvrdit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================================================== */}
+          {/* DETAIL AKCE + SPRÁVA DOCHÁZKY                        */}
+          {/* ==================================================== */}
+          {eventDetail && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 max-h-[88vh] overflow-y-auto animate-fade-up">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-medium text-stone-500">
+                      {formatCzechDate(eventDetail.rawDate)} · {eventDetail.startTime}
+                    </span>
+                    <h3 className="font-semibold text-base text-stone-900 mt-0.5">{eventDetail.title}</h3>
+                  </div>
+                  <button onClick={() => setEventDetailId(null)} className="text-stone-400 hover:text-stone-700 p-1">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="divide-y divide-stone-100 text-[13px]">
+                  {teamPlayers.map(p => {
+                    const rec = attendances[`${eventDetail.id}_${p.id}`];
+                    const st = rec?.status || 'PENDING';
+                    return (
+                      <div key={p.id} className="py-2.5 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium text-stone-800">{p.name}</div>
+                          {st === 'EXCUSED' && rec?.reason && (
+                            <div className="text-xs text-amber-700">{rec.reason}</div>
+                          )}
+                        </div>
+
+                        {isCoach ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => handleSetAttendance(eventDetail.id, p.id, 'PRESENT')}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-medium ${st === 'PRESENT' ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'}`}
+                            >
+                              Byl
+                            </button>
+                            <button
+                              onClick={() => handleSetAttendance(eventDetail.id, p.id, 'EXCUSED', rec?.reason || 'Omluven trenérem')}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-medium ${st === 'EXCUSED' ? 'bg-amber-600 text-white' : 'bg-stone-100 text-stone-600'}`}
+                            >
+                              Oml.
+                            </button>
+                            <button
+                              onClick={() => handleSetAttendance(eventDetail.id, p.id, 'UNEXCUSED')}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-medium ${st === 'UNEXCUSED' ? 'bg-rose-600 text-white' : 'bg-stone-100 text-stone-600'}`}
+                            >
+                              Neoml.
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                            st === 'PRESENT' ? 'bg-green-50 text-green-800' :
+                            st === 'EXCUSED' ? 'bg-amber-50 text-amber-800' :
+                            st === 'UNEXCUSED' ? 'bg-rose-50 text-rose-800' :
+                            'bg-stone-100 text-stone-500'
+                          }`}>
+                            {st === 'PRESENT' ? 'Potvrzeno' : st === 'EXCUSED' ? 'Omluven' : st === 'UNEXCUSED' ? 'Neomluven' : 'Čeká'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {isCoach && (
+                  <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => openEditEventModal(eventDetail)}
+                      className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-medium text-xs"
+                    >
+                      Upravit
+                    </button>
+                    <button
+                      onClick={() => handleToggleEventFinished(eventDetail.id)}
+                      className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-medium text-xs"
+                    >
+                      {eventDetail.isFinished ? 'Znovu otevřít' : 'Uzavřít do statistik'}
+                    </button>
+                    <button
+                      onClick={() => requestDeleteEvent(eventDetail)}
+                      className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-xs"
+                    >
+                      Smazat
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ==================================================== */}
+          {/* MODÁL: PŘIDAT / UPRAVIT AKCI                         */}
+          {/* ==================================================== */}
+          {eventModalState && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 max-h-[90vh] overflow-y-auto animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">
+                    {eventModalState.mode === 'EDIT' ? 'Upravit akci' : 'Nová akce'}
+                  </h3>
+                  <button onClick={() => setEventModalState(null)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveEvent} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 bg-stone-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setEventForm({ ...eventForm, type: 'TRAINING' })}
+                      className={`py-2 rounded-lg text-xs font-medium transition ${eventForm.type === 'TRAINING' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}
+                    >
+                      Trénink
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventForm({ ...eventForm, type: 'MATCH' })}
+                      className={`py-2 rounded-lg text-xs font-medium transition ${eventForm.type === 'MATCH' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}
+                    >
+                      Zápas
+                    </button>
+                  </div>
+
+                  {eventForm.type === 'MATCH' ? (
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Soupeř</label>
+                      <input
+                        type="text" required
+                        value={eventForm.opponent}
+                        onChange={(e) => setEventForm({ ...eventForm, opponent: e.target.value })}
+                        placeholder="Např. FK Slavoj Vršovice"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900 focus:outline-none focus:border-green-700"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Název tréninku</label>
+                      <input
+                        type="text"
+                        value={eventForm.title}
+                        onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                        placeholder="Např. Nácvik standardek a střelba"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900 focus:outline-none focus:border-green-700"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Datum</label>
+                      <input
+                        type="date" required
+                        value={eventForm.rawDate}
+                        onChange={(e) => setEventForm({ ...eventForm, rawDate: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Sraz</label>
+                      <input
+                        type="time" required
+                        value={eventForm.meetTime}
+                        onChange={(e) => setEventForm({ ...eventForm, meetTime: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Začátek / Výkop</label>
+                      <input
+                        type="time" required
+                        value={eventForm.startTime}
+                        onChange={(e) => setEventForm({ ...eventForm, startTime: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Místo</label>
+                      <input
+                        type="text" required
+                        value={eventForm.location}
+                        onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-stone-600 block mb-1">Poznámka pro tým</label>
+                    <input
+                      type="text"
+                      value={eventForm.notes}
+                      onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })}
+                      placeholder="Volitelné pokyny..."
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onClick={() => setEventModalState(null)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">
+                      Zrušit
+                    </button>
+                    <button type="submit" className="py-2.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-medium text-xs">
+                      Uložit
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {excuseModalEventId && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">Omluvit se z akce</h3>
+                  <button onClick={() => setExcuseModalEventId(null)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {['Pracovní směna', 'Zranění / Nemoc', 'Rodinná oslava', 'Škola'].map(tag => (
+                    <button
+                      key={tag} type="button"
+                      onClick={() => setExcuseReason(tag)}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={excuseReason}
+                  onChange={(e) => setExcuseReason(e.target.value)}
+                  placeholder="Důvod omluvenky pro trenéra..."
+                  rows={3}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-900 focus:outline-none focus:border-amber-600"
+                ></textarea>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setExcuseModalEventId(null)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">
+                    Zrušit
+                  </button>
+                  <button onClick={handleSubmitExcuse} className="py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs">
+                    Odeslat omluvenku
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {cancelEventModalId && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">Zrušit akci</h3>
+                  <button onClick={() => setCancelEventModalId(null)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-stone-500">
+                  Zrušená akce zůstane v kalendáři označená jako zrušená, aby o tom celý tým věděl, a nezapočítá se do měsíční docházky.
+                </p>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {['Podmáčené hřiště / déšť', 'Soupeř odřekl', 'Málo hráčů', 'Technické důvody'].map(tag => (
+                    <button
+                      key={tag} type="button"
+                      onClick={() => setCancelEventReason(tag)}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={cancelEventReason}
+                  onChange={(e) => setCancelEventReason(e.target.value)}
+                  placeholder="Důvod zrušení pro kabinu..."
+                  rows={2}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-900 focus:outline-none focus:border-rose-600"
+                ></textarea>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setCancelEventModalId(null)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">
+                    Zpět
+                  </button>
+                  <button onClick={handleConfirmCancelEvent} className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs">
+                    Zrušit akci
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {slotPickerSlotId && activeMatch && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-3 max-h-[85vh] overflow-y-auto animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-stone-900">
+                    Vybrat hráče na pozici ({slotPickerSlotId.toUpperCase()})
+                  </h3>
+                  <button onClick={() => setSlotPickerSlotId(null)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="divide-y divide-stone-100 text-[13px]">
+                  <button
+                    onClick={() => handleClearSlot(slotPickerSlotId)}
+                    className="w-full py-2.5 px-2 flex items-center gap-2 text-rose-600 hover:bg-rose-50 rounded-xl font-medium text-xs"
+                  >
+                    <Icon name="trash" className="w-4 h-4" />
+                    <span>Uvolnit tuto pozici</span>
+                  </button>
+
+                  {teamPlayers.map(p => {
+                    const st = attendances[`${activeMatch.id}_${p.id}`]?.status;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => handleAssignToSlot(slotPickerSlotId, p.id)}
+                        className="w-full py-2.5 px-2 flex items-center justify-between hover:bg-stone-50 rounded-xl text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center font-semibold text-[10px] text-stone-700">
+                            {p.jersey ? `#${p.jersey}` : getInitials(p.name)}
+                          </span>
+                          <div>
+                            <span className="font-medium text-stone-900">{p.name}</span>
+                            <span className="text-[11px] text-stone-400 block">{p.pos || 'Hráč'}</span>
+                          </div>
+                        </div>
+
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                          st === 'PRESENT' ? 'bg-green-50 text-green-800' :
+                          st === 'EXCUSED' ? 'bg-amber-50 text-amber-800' :
+                          'bg-stone-100 text-stone-500'
+                        }`}>
+                          {st === 'PRESENT' ? 'Potvrdil' : st === 'EXCUSED' ? 'Omluven' : 'Čeká'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {newTeamModalOpen && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">Nový tým</h3>
+                  <button onClick={() => setNewTeamModalOpen(false)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateTeam} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-stone-600 block mb-1">Název týmu</label>
+                    <input
+                      type="text" required
+                      value={newTeamForm.name}
+                      onChange={(e) => setNewTeamForm({ ...newTeamForm, name: e.target.value })}
+                      placeholder="Např. SK Dynamo Braník"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Soutěž / liga</label>
+                      <input
+                        type="text"
+                        value={newTeamForm.league}
+                        onChange={(e) => setNewTeamForm({ ...newTeamForm, league: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Barva</label>
+                      <input
+                        type="color"
+                        value={newTeamForm.color}
+                        onChange={(e) => setNewTeamForm({ ...newTeamForm, color: e.target.value })}
+                        className="w-full h-9 bg-stone-50 border border-stone-200 rounded-xl p-1 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onClick={() => setNewTeamModalOpen(false)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">Zrušit</button>
+                    <button type="submit" className="py-2.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-medium text-xs">Založit tým</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {newFineModalOpen && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 max-h-[90vh] overflow-y-auto animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">Udělit pokutu</h3>
+                  <button onClick={() => setNewFineModalOpen(false)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {teamPlayers.length === 0 ? (
+                  <p className="text-xs text-stone-500 py-4 text-center">V týmu zatím nejsou žádní hráči.</p>
+                ) : (
+                  <form onSubmit={handleIssueFine} className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Hráč</label>
+                      <select
+                        value={fineForm.userId}
+                        onChange={(e) => setFineForm({ ...fineForm, userId: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      >
+                        {teamPlayers.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} {p.jersey ? `#${p.jersey}` : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Typ pokuty</label>
+                      <select
+                        value={fineForm.ruleId}
+                        onChange={(e) => {
+                          const r = teamFineRules.find(x => x.id === e.target.value);
+                          setFineForm({
+                            ...fineForm,
+                            ruleId: e.target.value,
+                            amount: r ? r.amount : fineForm.amount
+                          });
+                        }}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      >
+                        {teamFineRules.map(r => (
+                          <option key={r.id} value={r.id}>{r.title} ({r.amount} Kč)</option>
+                        ))}
+                        <option value="CUSTOM">Vlastní důvod...</option>
+                      </select>
+                    </div>
+
+                    {fineForm.ruleId === 'CUSTOM' && (
+                      <div>
+                        <label className="text-xs font-medium text-stone-600 block mb-1">Vlastní důvod</label>
+                        <input
+                          type="text" required
+                          value={fineForm.title}
+                          onChange={(e) => setFineForm({ ...fineForm, title: e.target.value })}
+                          placeholder="Např. Rozbitý míč"
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Částka (Kč)</label>
+                      <input
+                        type="number" required min="1"
+                        value={fineForm.amount}
+                        onChange={(e) => setFineForm({ ...fineForm, amount: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Poznámka</label>
+                      <input
+                        type="text"
+                        value={fineForm.note}
+                        onChange={(e) => setFineForm({ ...fineForm, note: e.target.value })}
+                        placeholder="Volitelný popis..."
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <button type="button" onClick={() => setNewFineModalOpen(false)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">Zrušit</button>
+                      <button type="submit" className="py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-medium text-xs">Zapsat</button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {manageRulesModalOpen && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 max-h-[85vh] overflow-y-auto animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">Sazebník pokut</h3>
+                  <button onClick={() => setManageRulesModalOpen(false)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddRule} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <input
+                    type="text" required
+                    value={newRuleForm.title}
+                    onChange={(e) => setNewRuleForm({ ...newRuleForm, title: e.target.value })}
+                    placeholder="Nová položka sazebníku..."
+                    className="w-full bg-white border border-stone-200 rounded-lg p-2 text-xs text-stone-900"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number" required min="1"
+                      value={newRuleForm.amount}
+                      onChange={(e) => setNewRuleForm({ ...newRuleForm, amount: e.target.value })}
+                      className="w-1/2 bg-white border border-stone-200 rounded-lg p-2 text-xs text-stone-900"
+                    />
+                    <button type="submit" className="w-1/2 py-2 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-lg text-xs">
+                      Přidat
+                    </button>
+                  </div>
+                </form>
+
+                <div className="divide-y divide-stone-100 text-[13px]">
+                  {teamFineRules.map(r => (
+                    <div key={r.id} className="py-2.5 flex items-center justify-between gap-2">
+                      <span className="text-stone-700">{r.title}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-semibold text-stone-900 tabular-nums">{r.amount} Kč</span>
+                        <button onClick={() => handleDeleteRule(r.id)} className="text-stone-400 hover:text-rose-600">
+                          <Icon name="trash" className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODÁL: PŘIDAT / UPRAVIT ČLENA TÝMU */}
+          {memberModalState && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 w-full max-w-md shadow-xl space-y-4 animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base text-stone-900">
+                    {memberModalState.mode === 'EDIT' ? 'Upravit člena týmu' : 'Přidat člena týmu'}
+                  </h3>
+                  <button onClick={() => setMemberModalState(null)} className="text-stone-400 hover:text-stone-700">
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveMember} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-stone-600 block mb-1">Jméno a příjmení</label>
+                    <input
+                      type="text" required
+                      value={memberForm.name}
+                      onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                      placeholder="Jan Novák"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Přezdívka</label>
+                      <input
+                        type="text"
+                        value={memberForm.nickname}
+                        onChange={(e) => setMemberForm({ ...memberForm, nickname: e.target.value })}
+                        placeholder="Volitelné"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Číslo dresu</label>
+                      <input
+                        type="number"
+                        value={memberForm.jersey}
+                        onChange={(e) => setMemberForm({ ...memberForm, jersey: e.target.value })}
+                        placeholder="Např. 10"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Role v týmu</label>
+                      <select
+                        value={memberForm.role}
+                        onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                      >
+                        <option value="PLAYER">Hráč</option>
+                        <option value="CAPTAIN">Kapitán</option>
+                        <option value="COACH">Trenér</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600 block mb-1">Pozice</label>
+                      <select
+                        disabled={memberForm.role === 'COACH'}
+                        value={memberForm.pos}
+                        onChange={(e) => setMemberForm({ ...memberForm, pos: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900 disabled:opacity-50"
+                      >
+                        <option value="GK">Brankář (GK)</option>
+                        <option value="DEF">Obránce (DEF)</option>
+                        <option value="MID">Záložník (MID)</option>
+                        <option value="FWD">Útočník (FWD)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-stone-600 block mb-1">Telefon</label>
+                    <input
+                      type="tel"
+                      value={memberForm.phone}
+                      onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
+                      placeholder="777 123 456"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onClick={() => setMemberModalState(null)} className="py-2.5 rounded-xl bg-stone-100 text-stone-700 font-medium text-xs">Zrušit</button>
+                    <button type="submit" className="py-2.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-medium text-xs">
+                      {memberModalState.mode === 'EDIT' ? 'Uložit změny' : 'Přidat'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

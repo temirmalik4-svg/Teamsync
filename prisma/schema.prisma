@@ -1,0 +1,186 @@
+// TeamSync - Databázové schéma Prisma
+datasource db {
+  provider = "sqlite" // Pro produkci jednoduše změňte na "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMY A ČÍSELNÍKY
+// ----------------------------------------------------
+
+enum Role {
+  COACH    // Trenér: plná správa tréninků, zápasů a sestavy
+  CAPTAIN  // Kapitán: správa pokutové kasy, sazebníku a zápisů
+  PLAYER   // Hráč: omluvenky, potvrzení nominace, náhled sestavy a pokut
+}
+
+enum EventType {
+  TRAINING // Trénink
+  MATCH    // Mistrovské / Přátelské utkání
+}
+
+enum AttendanceStatus {
+  PRESENT   // Přítomen / Potvrdil účast
+  EXCUSED   // Omluven (s uvedeným důvodem)
+  UNEXCUSED // Neomluvená absence (podklad pro pokutu)
+  PENDING   // Čeká na vyjádření hráče
+}
+
+enum PlayerPosition {
+  GK  // Brankář
+  DEF // Obránce
+  MID // Záložník
+  FWD // Útočník
+}
+
+// ----------------------------------------------------
+// TABULKY / MODELY
+// ----------------------------------------------------
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String   // např. "TJ Sokol Horní Lhota"
+  code      String   @unique // zvací kód týmu pro registraci hráčů
+  logoUrl   String?
+  createdAt DateTime @default(now())
+
+  users     User[]
+  events    Event[]
+  fineRules FineRule[]
+  fines     FineEntry[]
+}
+
+model User {
+  id           String          @id @default(uuid())
+  teamId       String
+  email        String          @unique
+  passwordHash String
+  name         String          // Celé jméno (např. "Jan Novák")
+  nickname     String?         // Přezdívka v kabině (např. "Bílek")
+  jerseyNumber Int?            // Číslo dresu
+  position     PlayerPosition? // Preferovaná pozice
+  role         Role            @default(PLAYER)
+  phone        String?
+  avatarUrl    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  team         Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  attendances  Attendance[]
+  lineupSlots  LineupSlot[]
+  finesReceived FineEntry[]    @relation("FinesReceived")
+  finesIssued   FineEntry[]    @relation("FinesIssued")
+
+  @@index([teamId])
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  teamId      String
+  type        EventType
+  title       String      // např. "Mistrovský zápas vs. SK Vršovice" nebo "Úterní trénink - herní taktika"
+  description String?     // Pokyny trenéra
+  location    String      // Hřiště / Adresa
+  isHome      Boolean     @default(true) // Domácí / Venkovní
+  opponent    String?     // Pouze u zápasu: název soupeře
+  meetTime    DateTime?   // Čas srazu v kabině
+  startTime   DateTime    // Výkop / začátek tréninku
+  endTime     DateTime?   // Předpokládaný konec
+  isFinished  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  attendance  Attendance[]
+  lineup      MatchLineup?
+
+  @@index([teamId, startTime])
+}
+
+model Attendance {
+  id          String           @id @default(uuid())
+  eventId     String
+  userId      String
+  status      AttendanceStatus @default(PENDING)
+  reason      String?          // Důvod omluvenky (např. "Práce do 18:00", "Zranění kotníku", "Nemoc")
+  respondedAt DateTime?        @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId, status])
+}
+
+model MatchLineup {
+  id            String       @id @default(uuid())
+  eventId       String       @unique // Každý zápas má právě jednu oficiální sestavu
+  formation     String       @default("4-4-2") // např. "4-3-3", "4-4-2", "3-5-2"
+  tacticalNotes String?      // Pokyny pro zápas: standardní situace, presink
+  isPublished   Boolean      @default(false) // Trenér zveřejní až když je hotová
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  event Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  slots LineupSlot[]
+}
+
+model LineupSlot {
+  id           String      @id @default(uuid())
+  lineupId     String
+  userId       String
+  positionName String      // "GK", "LB", "CB_L", "CB_R", "RB", "CM", "LW", "RW", "ST" nebo "SUB"
+  gridX        Float       // Horizontální pozice na hřišti v % (0 = levá lajna, 100 = pravá lajna)
+  gridY        Float       // Vertikální pozice na hřišti v % (0 = brankář dole, 100 = útok nahoře)
+  isStarter    Boolean     @default(true) // true = základní sestava, false = lavička náhradníků
+  orderIndex   Int         @default(0)
+
+  lineup MatchLineup @relation(fields: [lineupId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lineupId])
+  @@index([userId])
+}
+
+model FineRule {
+  id          String   @id @default(uuid())
+  teamId      String
+  title       String   // Název (např. "Pozdní příchod na sraz", "Zapomenuté kopačky", "Mobil v kabině")
+  description String?
+  amount      Int      // Částka v Kč (např. 50, 100, 200)
+  category    String   @default("DISCIPLINE") // DISCIPLINE, MATCH, PARTY, OTHER
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  team    Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  entries FineEntry[]
+
+  @@index([teamId])
+}
+
+model FineEntry {
+  id             String    @id @default(uuid())
+  teamId         String
+  userId         String    // Hráč, který pokutu dostal
+  fineRuleId     String?   // Odkaz na sazebník (nebo null u jednorázové vlastní pokuty)
+  title          String    // Název pokuty v okamžiku udělení
+  amount         Int       // Částka v Kč
+  isPaid         Boolean   @default(false)
+  issuedByUserId String    // Kdo pokutu udělil (obvykle Kapitán)
+  issuedAt       DateTime  @default(now())
+  paidAt         DateTime? // Datum úhrady do kasy
+  note           String?   // Poznámka k situaci
+
+  team     Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User      @relation("FinesReceived", fields: [userId], references: [id], onDelete: Cascade)
+  issuer   User      @relation("FinesIssued", fields: [issuedByUserId], references: [id], onDelete: Cascade)
+  fineRule FineRule? @relation(fields: [fineRuleId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, isPaid])
+  @@index([userId, isPaid])
+}
